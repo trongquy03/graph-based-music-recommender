@@ -55,7 +55,7 @@ export const getTrendingSongs = async (req, res, next) => {
     try {
         // fetch 6 random song using mongoose aggregation pipeline
         const songs = await Song.aggregate([
-            { $sample: { size: 6 } },
+            { $sample: { size: 4 } },
             {
                 $project: {
                     _id: 1,
