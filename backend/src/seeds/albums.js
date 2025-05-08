@@ -21,7 +21,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/7.jpg",
 				audioUrl: "/songs/7.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 39, // 0:39
+				duration: 245, // 0:39
 			},
 			{
 				title: "Neon Lights",
@@ -29,7 +29,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/5.jpg",
 				audioUrl: "/songs/5.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 36, // 0:36
+				duration: 245, // 0:36
 			},
 			{
 				title: "Urban Jungle",
@@ -37,7 +37,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/15.jpg",
 				audioUrl: "/songs/15.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 36, // 0:36
+				duration: 245, // 0:36
 			},
 			{
 				title: "Neon Dreams",
@@ -45,7 +45,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/13.jpg",
 				audioUrl: "/songs/13.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 39, // 0:39
+				duration: 245, // 0:39
 			},
 			{
 				title: "Summer Daze",
@@ -53,7 +53,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/4.jpg",
 				audioUrl: "/songs/4.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 24, // 0:24
+				duration: 245, // 0:24
 			},
 			{
 				title: "Ocean Waves",
@@ -61,7 +61,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/9.jpg",
 				audioUrl: "/songs/9.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 28, // 0:28
+				duration: 245, // 0:28
 			},
 			{
 				title: "Crystal Rain",
@@ -69,7 +69,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/16.jpg",
 				audioUrl: "/songs/16.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 39, // 0:39
+				duration: 245, // 0:39
 			},
 			{
 				title: "Starlight",
@@ -77,7 +77,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/10.jpg",
 				audioUrl: "/songs/10.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 30, // 0:30
+				duration: 245, // 0:30
 			},
 			{
 				title: "Stay With Me",
@@ -85,7 +85,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/1.jpg",
 				audioUrl: "/songs/1.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 46, // 0:46
+				duration: 245, // 0:46
 			},
 			{
 				title: "Midnight Drive",
@@ -93,7 +93,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/2.jpg",
 				audioUrl: "/songs/2.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 41, // 0:41
+				duration: 245, // 0:41
 			},
 			{
 				title: "Moonlight Dance",
@@ -101,7 +101,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/14.jpg",
 				audioUrl: "/songs/14.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 27, // 0:27
+				duration: 245, // 0:27
 			},
 			{
 				title: "Lost in Tokyo",
@@ -109,7 +109,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/3.jpg",
 				audioUrl: "/songs/3.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 24, // 0:24
+				duration: 245, // 0:24
 			},
 			{
 				title: "Neon Tokyo",
@@ -117,7 +117,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/17.jpg",
 				audioUrl: "/songs/17.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 39, // 0:39
+				duration: 245, // 0:39
 			},
 			{
 				title: "Purple Sunset",
@@ -125,7 +125,7 @@ const seedDatabase = async () => {
 				imageUrl: "/cover-images/12.jpg",
 				audioUrl: "/songs/12.mp3",
 				plays: Math.floor(Math.random() * 5000),
-				duration: 17, // 0:17
+				duration: 245, // 0:17
 			},
 		]);
 
