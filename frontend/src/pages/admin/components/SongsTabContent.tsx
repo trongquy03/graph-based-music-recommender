@@ -7,7 +7,7 @@ const SongsTabContent = () => {
 	return (
 		<Card>
 			<CardHeader>
-				<div className='flex items-center justify-between'>
+				<div className='flex items-center justify-between '>
 					<div>
 						<CardTitle className='flex items-center gap-2'>
 							<Music className='size-5 text-emerald-500' />

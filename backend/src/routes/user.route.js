@@ -5,6 +5,7 @@ import { getAllUsers } from "../controller/user.controller.js";
 
 const router = Router();
 
-router.get('/',protectRoute, getAllUsers)
+router.get("/",protectRoute, getAllUsers);
+router.get("/messages/:userId",protectRoute, getAllUsers);
 
 export default router
