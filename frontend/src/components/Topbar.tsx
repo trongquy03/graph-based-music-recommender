@@ -14,10 +14,12 @@ const Topbar = () => {
     <div className="flex items-center justify-between p-4 sticky top-0 bg-zinc-900/75
     backdrop-blur-md z-10
     ">
+        <Link to="/">
         <div className="flex gap-2 items-center">
             <img src="/tunewise_logo.png" alt="TuneWise logo" className="size-8" />
             TuneWise
         </div>
+        </Link>
         {/* Search bar */}
         <input
           type="text"
