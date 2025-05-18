@@ -14,8 +14,6 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    // likedSongs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
-    // playlists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Playlist" }]
 },
  {timestamps: true}
 );

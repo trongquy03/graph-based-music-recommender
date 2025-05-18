@@ -18,7 +18,7 @@ const FriendsActivity = () => {
 			<div className='p-4 flex justify-between items-center border-b border-zinc-800'>
 				<div className='flex items-center gap-2'>
 					<Users className='size-5 shrink-0' />
-					<h2 className='font-semibold'>What they're listening to</h2>
+					<h2 className='font-semibold'>Họ đang nghe gì</h2>
 				</div>
 			</div>
 

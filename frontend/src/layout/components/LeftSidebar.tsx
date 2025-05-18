@@ -32,7 +32,7 @@ const LeftSidebar = () => {
                 )}
                 >
                 <HomeIcon className="mr-2 size-5" />
-                <span className="hidden md:inline">Home</span>
+                <span className="hidden md:inline">Trang chủ</span>
                 </Link>
 
                 <SignedIn>
@@ -56,7 +56,7 @@ const LeftSidebar = () => {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center text-white px-2">
                     <LibraryIcon className="size-5 mr-2" />
-                    <span className="hidden md:inline">Playlists</span>
+                    <span className="hidden md:inline">Danh sách phát</span>
                 </div>
             </div>
 
