@@ -14,6 +14,9 @@ import authRoutes from "./routes/auth.route.js"
 import albumRoutes from "./routes/album.route.js"
 import songRoutes from "./routes/song.route.js"
 import statRoutes from "./routes/stat.route.js"
+import likeRoutes from "./routes/like.route.js"
+import ratingRoutes from "./routes/rating.route.js"
+import historyRoutes from "./routes/history.route.js"
 import { connectDB } from "./lib/db.js";
 
 
@@ -53,6 +56,8 @@ app.use("/api/songs", songRoutes);
 app.use("/api/albums", albumRoutes);
 app.use("/api/stats", statRoutes);
 app.use("/api/likes", likeRoutes);
+app.use("/api/ratings", ratingRoutes);
+app.use("/api/history", historyRoutes);
 
 
 

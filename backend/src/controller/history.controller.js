@@ -1,0 +1,31 @@
+import { ListeningHistory } from "../models/listeningHistory.model.js";
+
+// Ghi nhận một lần nghe
+export const recordListening = async (req, res) => {
+    const userId = req.auth.userId;
+    const { songId } = req.body;
+
+    try {
+        const history = new ListeningHistory({ user: userId, song: songId });
+        await history.save();
+
+        res.status(201).json({ message: "Listening recorded successfully!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// Lấy lịch sử nghe nhạc
+export const getListeningHistory = async (req, res) => {
+    const userId = req.auth.userId;
+
+    try {
+        const history = await ListeningHistory.find({ user: userId })
+            .populate("song")
+            .sort({ listenedAt: -1 }); // mới nhất trước
+
+        res.status(200).json(history);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

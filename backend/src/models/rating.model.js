@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 
 const ratingSchema = new mongoose.Schema({
     user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        type: String, // Clerk userId
         required: true
     },
     song: {
@@ -17,9 +16,9 @@ const ratingSchema = new mongoose.Schema({
         min: 1,
         max: 5
     }
-}, {timestamps: true});
+}, { timestamps: true });
 
-// Một user chỉ được rating 1 bài 1 lần (có thể cập nhật)
+// Một user chỉ được rate 1 lần cho mỗi bài hát
 ratingSchema.index({ user: 1, song: 1 }, { unique: true });
 
 export const Rating = mongoose.model("Rating", ratingSchema);
