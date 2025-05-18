@@ -10,6 +10,7 @@ import AdminPage from "./pages/admin/AdminPage";
 
 import { Toaster } from "react-hot-toast";
 import NotFoundPage from "./pages/404/NotFoundPage";
+import LoginPage from "./pages/login/LoginPage";
 
 function App() {
   return (
@@ -18,10 +19,10 @@ function App() {
       <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback signUpForceRedirectUrl={"/auth-callback"}/>} />
       <Route path="/auth-callback" element={<AuthCallbackPage/>} />
       <Route path="/admin" element={<AdminPage/>} />
-
+      <Route path="/login" element={<LoginPage/>} />
 
       <Route element={<MainLayout/>}>
-          <Route path="/" element={<HomePage/>} />
+          <Route path="/" element={<HomePage/>} /> 
           <Route path="/chat" element={<ChatPage/>} />
           <Route path="/albums/:albumId" element={<AlbumPage/>} />
           <Route path="/*" element={<NotFoundPage/>} />

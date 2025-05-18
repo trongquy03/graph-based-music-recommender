@@ -27,7 +27,7 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
         {songs.length > 4 && (
         <Button
             variant="link"
-            className="text-sm text-zinc-400 hover:text-white"
+            className="text-sm text-zinc-400 hover:text-white cursor-pointer"
             onClick={() => setShowAll(!showAll)}
         >
             {showAll ? "Thu gọn" : "Xem tất cả"}
@@ -42,6 +42,7 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
             className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer"
           >
             <div className="relative mb-4">
+              
               <div className="aspect-square rounded-md shadow-lg overflow-hidden">
                 <img
                   src={song.imageUrl}

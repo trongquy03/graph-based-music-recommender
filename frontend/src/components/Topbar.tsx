@@ -1,9 +1,8 @@
 import { SignedOut, UserButton } from "@clerk/clerk-react";
 import { LayoutDashboardIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import SignInOAuthButtons from "./SignInOAuthButtons";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { buttonVariants } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 
 const Topbar = () => {
@@ -28,6 +27,7 @@ const Topbar = () => {
         //   onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1 min-w-[200px] max-w-[400px] bg-zinc-800 text-white px-4 py-2 rounded-md outline-none border border-zinc-700 placeholder:text-zinc-400 text-base"
         />
+        
 
         <div className="flex items-center gap-4">
             {isAdmin && (
@@ -39,9 +39,13 @@ const Topbar = () => {
                     Admin Dashboard
                 </Link>
             )}
-
+            {/* <ModeToggle /> */}
             <SignedOut>
-                <SignInOAuthButtons />
+              <Link to={"/login"}>
+              <Button variant={"secondary"} className="w-full text-white border-zinc-200 h-11 cursor-pointer">
+                Đăng nhập
+             </Button></Link>
+                
             </SignedOut>
 
             <UserButton />
