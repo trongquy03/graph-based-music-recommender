@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import LikeButton from "@/pages/home/components/LikeButton";
+import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
+import { useAuth } from "@clerk/clerk-react";
+import clsx from "clsx";
 import {
   Laptop2,
   ListMusic,
@@ -8,29 +12,46 @@ import {
   Pause,
   Play,
   Repeat,
+  Repeat1,
   Shuffle,
   SkipBack,
   SkipForward,
   Volume2,
-  VolumeX
+  VolumeX,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const formatTime = (seconds: number) => {
-	const minutes = Math.floor(seconds / 60);
-	const remainingSeconds = Math.floor(seconds % 60);
-	return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
 export const PlaybackControls = () => {
-  const { currentSong, isPlaying, togglePlay, playNext, playPrevious } = usePlayerStore();
-
+  const {
+    currentSong,
+    isPlaying,
+    togglePlay,
+    playNext,
+    playPrevious,
+    shuffleQueue,
+    toggleLoop,
+    isLooping,
+    isShuffling,
+  } = usePlayerStore();
+  const { isSignedIn } = useAuth();
   const [volume, setVolume] = useState(75);
   const [prevVolume, setPrevVolume] = useState(75);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { likeCounts,fetchLikeCountBySongId, likedSongIds  } = useMusicStore();
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+  if (currentSong) {
+    fetchLikeCountBySongId(currentSong._id);
+    }
+  }, [currentSong]);
   useEffect(() => {
     audioRef.current = document.querySelector("audio");
 
@@ -44,7 +65,12 @@ export const PlaybackControls = () => {
     audio.addEventListener("loadedmetadata", updateDuration);
 
     const handleEnded = () => {
-      usePlayerStore.setState({ isPlaying: false });
+      if (isLooping && currentSong) {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        playNext();
+      }
     };
     audio.addEventListener("ended", handleEnded);
 
@@ -53,7 +79,7 @@ export const PlaybackControls = () => {
       audio.removeEventListener("loadedmetadata", updateDuration);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [currentSong]);
+  }, [currentSong, isLooping, playNext]);
 
   const handleSeek = (value: number[]) => {
     if (!audioRef.current) return;
@@ -74,7 +100,6 @@ export const PlaybackControls = () => {
   return (
     <footer className="h-20 sm:h-24 bg-zinc-900 border-t border-zinc-800 px-4">
       <div className="flex justify-between items-center h-full max-w-[1800px] mx-auto">
-        {/* bài đang phát */}
         <div className="hidden sm:flex items-center gap-4 min-w-[180px] w-[30%]">
           {currentSong && (
             <>
@@ -95,16 +120,21 @@ export const PlaybackControls = () => {
           )}
         </div>
 
-        {/* player controls*/}
         <div className="flex flex-col items-center gap-2 flex-1 max-w-full sm:max-w-[45%]">
           <div className="flex items-center gap-4 sm:gap-6">
             <Button
-              size="icon"
-              variant="ghost"
-              className="hidden sm:inline-flex hover:text-white text-zinc-400 cursor-pointer"
-            >
-              <Shuffle className="h-4 w-4" />
-            </Button>
+            size="icon"
+            variant="ghost"
+            onClick={shuffleQueue}
+            className={clsx(
+              "hidden sm:inline-flex cursor-pointer",
+              isShuffling
+                ? "bg-white/10 text-white"
+                : "text-zinc-400 hover:text-white"
+            )}
+          >
+            <Shuffle className="h-4 w-4" />
+          </Button>
 
             <Button
               size="icon"
@@ -136,12 +166,22 @@ export const PlaybackControls = () => {
             </Button>
 
             <Button
-              size="icon"
-              variant="ghost"
-              className="hidden sm:inline-flex cursor-pointer hover:text-white text-zinc-400"
-            >
-              <Repeat className="h-4 w-4" />
-            </Button>
+                size="icon"
+                variant="ghost"
+                onClick={toggleLoop}
+                className={clsx(
+                  "hidden sm:inline-flex cursor-pointer",
+                  isLooping
+                    ? "bg-white/10 text-white"
+                    : "text-zinc-400 hover:text-white"
+                )}
+              >
+                {isLooping ? (
+                  <Repeat1 className="h-4 w-4" />
+                ) : (
+                  <Repeat className="h-4 w-4" />
+                )}
+              </Button>
           </div>
 
           <div className="hidden sm:flex items-center gap-2 w-full">
@@ -157,8 +197,19 @@ export const PlaybackControls = () => {
           </div>
         </div>
 
-        {/* volume controls */}
         <div className="hidden sm:flex items-center gap-4 min-w-[180px] w-[30%] justify-end">
+          {currentSong && isSignedIn && (
+            <div className="flex items-center justify-center gap-2">
+              <LikeButton song={currentSong} className="hover:scale-105 opacity-100 size-5" />
+              <span className="text-sm text-zinc-400 leading-none">
+                {likeCounts[currentSong._id] ?? 0}
+              </span>
+            </div>
+
+          )}
+
+
+
           <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
             <Mic2 className="h-4 w-4" />
           </Button>
@@ -178,11 +229,7 @@ export const PlaybackControls = () => {
               className="hover:text-white cursor-pointer text-zinc-400"
               onClick={toggleMute}
             >
-              {volume === 0 ? (
-                <VolumeX className="h-4 w-4" />
-              ) : (
-                <Volume2 className="h-4 w-4" />
-              )}
+              {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </Button>
 
             <Slider

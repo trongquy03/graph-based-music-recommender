@@ -5,44 +5,48 @@ const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const prevSongRef = useRef<string | null>(null);
 
-  const {currentSong, isPlaying, playNext} = usePlayerStore();
-  
-  // play/pause 
+  const { currentSong, isPlaying, playNext, isLooping } = usePlayerStore();
+
+  // Phát / tạm dừng
   useEffect(() => {
-      if(isPlaying) audioRef.current?.play();
-      else audioRef.current?.pause();
+    if (isPlaying) audioRef.current?.play();
+    else audioRef.current?.pause();
   }, [isPlaying]);
-  
-  // kết thúc bài hát
+
+  // Kết thúc bài hát
   useEffect(() => {
     const audio = audioRef.current;
+    if (!audio) return;
+
     const handleEnded = () => {
-      playNext();
-    }
-    audio?.addEventListener("ended",handleEnded)
+      if (isLooping && currentSong) {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        playNext();
+      }
+    };
 
-    return () => audio?.removeEventListener("ended",handleEnded);
-  }, [playNext]);
+    audio.addEventListener("ended", handleEnded);
+    return () => audio.removeEventListener("ended", handleEnded);
+  }, [playNext, isLooping, currentSong]);
 
-  // thay đổi bài hát
+  // Thay đổi bài hát
   useEffect(() => {
     if (!audioRef.current || !currentSong) return;
+
     const audio = audioRef.current;
+    const isSongChange = prevSongRef.current !== currentSong.audioUrl;
 
-    const isSongChange = prevSongRef.current !== currentSong?.audioUrl;
     if (isSongChange) {
-      audio.src = currentSong?.audioUrl;
-      
+      audio.src = currentSong.audioUrl;
       audio.currentTime = 0;
-
-      prevSongRef.current = currentSong?.audioUrl;
-      if(isPlaying) audio.play();
+      prevSongRef.current = currentSong.audioUrl;
+      if (isPlaying) audio.play();
     }
   }, [currentSong, isPlaying]);
 
-  return (
-    <audio ref={audioRef}/>
-  )
-}
+  return <audio ref={audioRef} />;
+};
 
-export default AudioPlayer
+export default AudioPlayer;

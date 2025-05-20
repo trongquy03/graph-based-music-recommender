@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import SectionGridSkeleton from "@/components/skeletons/SectionGridSkeleton";
 import { Button } from "@/components/ui/button";
 import { Song } from "@/types";
 import PlayButton from "./PlayButton";
+import LikeButton from "./LikeButton";
+import { useMusicStore } from "@/stores/useMusicStore";
 
 type SectionGridProps = {
   title: string;
@@ -12,26 +15,28 @@ type SectionGridProps = {
 
 const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
   const [showAll, setShowAll] = useState(false);
+  const { isSignedIn } = useAuth();
+  const { likedSongIds } = useMusicStore();
+
+  if (!isSignedIn && title === "Gợi ý cho bạn") return null;
+
 
   if (isLoading) return <SectionGridSkeleton />;
 
   const songsToDisplay = showAll ? songs : songs.slice(0, 4);
-
-  console.log("SectionGrid songs length:", songs.length);
-
 
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl sm:text-2xl font-bold">{title}</h2>
         {songs.length > 4 && (
-        <Button
+          <Button
             variant="link"
             className="text-sm text-zinc-400 hover:text-white cursor-pointer"
             onClick={() => setShowAll(!showAll)}
-        >
+          >
             {showAll ? "Thu gọn" : "Xem tất cả"}
-        </Button>
+          </Button>
         )}
       </div>
 
@@ -39,10 +44,20 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
         {songsToDisplay.map((song) => (
           <div
             key={song._id}
-            className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer"
+            className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all cursor-pointer"
           >
-            <div className="relative mb-4">
-              
+            <div className="relative group mb-4">
+              {isSignedIn && (
+              <LikeButton
+                song={song}
+                className={` absolute top-3 right-2 z-10 transition-opacity scale-150 ${
+                likedSongIds.includes(song._id)
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100"
+              }`}
+              />
+            )}
+
               <div className="aspect-square rounded-md shadow-lg overflow-hidden">
                 <img
                   src={song.imageUrl}
@@ -52,6 +67,7 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
               </div>
               <PlayButton song={song} />
             </div>
+
             <h3 className="font-medium mb-2 truncate">{song.title}</h3>
             <p className="text-sm text-zinc-400 truncate">{song.artist}</p>
           </div>

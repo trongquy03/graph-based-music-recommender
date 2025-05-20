@@ -43,3 +43,14 @@ export const unlikeSong = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+export const getSongLikeCount = async (req, res) => {
+  const { songId } = req.params;
+
+  try {
+    const likeCount = await Like.countDocuments({ song: songId });
+    res.status(200).json({ songId, likeCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
