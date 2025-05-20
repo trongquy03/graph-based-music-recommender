@@ -27,6 +27,7 @@ interface MusicStore {
   likedSongIds: string[];
   hasFetchedLikes: boolean;
   likeCounts: Record<string, number>;
+  listeningHistory: Song[];
 
   fetchAlbums: () => Promise<void>;
   fetchAlbumById: (id: string) => Promise<void>;
@@ -39,6 +40,7 @@ interface MusicStore {
   deleteSong: (id: string) => Promise<void>;
   deleteAlbum: (id: string) => Promise<void>;
   fetchLikedSongs: () => Promise<void>;
+  fetchListeningHistory: () => Promise<void>;
   likeSong: (songId: string) => Promise<void>;
   unlikeSong: (songId: string) => Promise<void>;
   resetLikes: () => void;
@@ -56,6 +58,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   likedSongIds: [],
   hasFetchedLikes: false,
   likeCounts: {},
+  listeningHistory: [],
   stats: {
     totalSongs: 0,
     totalAlbums: 0,
@@ -218,6 +221,16 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       console.error("Failed to fetch like count", err);
     }
   },
+  fetchListeningHistory: async () => {
+      try {
+        const response = await axiosInstance.get("/history");
+        const songs = response.data.map((entry: any) => entry.song);
+        set({ listeningHistory: songs });
+      } catch (error) {
+        toast.error("Lỗi khi tải lịch sử nghe nhạc");
+      }
+    },
+
 
   likeSong: async (songId) => {
     try {

@@ -87,7 +87,7 @@ const LeftSidebar = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center text-white px-2">
             <LibraryIcon className="size-5 mr-2" />
-            <span className="hidden md:inline">Danh sách phát</span>
+            <span className="hidden md:inline">Album</span>
           </div>
         </div>
 

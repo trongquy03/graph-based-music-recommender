@@ -157,7 +157,7 @@ const LikedSongsPage = () => {
                             size="icon"
                             variant="ghost"
                             onClick={(e) => handleUnlike(e, song._id)}
-                            className="text-red-500 hover:text-white"
+                            className="text-red-500 hover:text-white cursor-pointer"
                           >
                             <Heart className="fill-red-500 h-5 w-5" />
                           </Button>

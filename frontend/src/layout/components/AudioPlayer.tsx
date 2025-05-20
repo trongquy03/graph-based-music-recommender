@@ -1,4 +1,5 @@
 import { usePlayerStore } from "@/stores/usePlayerStore";
+import { axiosInstance } from "@/lib/axios";
 import { useEffect, useRef } from "react";
 
 const AudioPlayer = () => {
@@ -7,13 +8,22 @@ const AudioPlayer = () => {
 
   const { currentSong, isPlaying, playNext, isLooping } = usePlayerStore();
 
-  // Phát / tạm dừng
+  // Ghi nhận lịch sử nghe
+  const recordListening = async (songId: string) => {
+    try {
+      await axiosInstance.post("/history", { songId });
+    } catch (error) {
+      console.error("Failed to record listening", error);
+    }
+  };
+
+  // Phát / tạm dừng khi trạng thái thay đổi
   useEffect(() => {
     if (isPlaying) audioRef.current?.play();
     else audioRef.current?.pause();
   }, [isPlaying]);
 
-  // Kết thúc bài hát
+  // Xử lý khi bài hát kết thúc
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -31,7 +41,7 @@ const AudioPlayer = () => {
     return () => audio.removeEventListener("ended", handleEnded);
   }, [playNext, isLooping, currentSong]);
 
-  // Thay đổi bài hát
+  // Khi bài hát thay đổi, load source và ghi nhận
   useEffect(() => {
     if (!audioRef.current || !currentSong) return;
 
@@ -42,6 +52,9 @@ const AudioPlayer = () => {
       audio.src = currentSong.audioUrl;
       audio.currentTime = 0;
       prevSongRef.current = currentSong.audioUrl;
+
+      recordListening(currentSong._id); //  Ghi nhận lịch sử nghe
+
       if (isPlaying) audio.play();
     }
   }, [currentSong, isPlaying]);
