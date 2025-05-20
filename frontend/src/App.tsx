@@ -11,6 +11,8 @@ import AdminPage from "./pages/admin/AdminPage";
 import { Toaster } from "react-hot-toast";
 import NotFoundPage from "./pages/404/NotFoundPage";
 import LoginPage from "./pages/login/LoginPage";
+import LikedSongPage from "./pages/like/LikedSongPage";
+import RecentlyPlayedPage from "./pages/recently/RecentlyPlayedPage";
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
           <Route path="/" element={<HomePage/>} /> 
           <Route path="/chat" element={<ChatPage/>} />
           <Route path="/albums/:albumId" element={<AlbumPage/>} />
+          <Route path="/liked-songs" element={<LikedSongPage/>} />
+          <Route path="/recently-played" element={<RecentlyPlayedPage/>} />
           <Route path="/*" element={<NotFoundPage/>} />
       </Route>
     </Routes>
