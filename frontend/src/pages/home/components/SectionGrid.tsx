@@ -6,6 +6,8 @@ import { Song } from "@/types";
 import PlayButton from "./PlayButton";
 import LikeButton from "./LikeButton";
 import { useMusicStore } from "@/stores/useMusicStore";
+import { useRatingStore } from "@/stores/useRatingStore";
+import { Star } from "lucide-react";
 
 type SectionGridProps = {
   title: string;
@@ -17,6 +19,10 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
   const [showAll, setShowAll] = useState(false);
   const { isSignedIn } = useAuth();
   const { likedSongIds } = useMusicStore();
+  const {
+      getAverageRatingForSong,
+      getUserRatingForSong,
+    } = useRatingStore();
 
   if (!isSignedIn && title === "Gợi ý cho bạn") return null;
 
@@ -70,6 +76,22 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
 
             <h3 className="font-medium mb-2 truncate">{song.title}</h3>
             <p className="text-sm text-zinc-400 truncate">{song.artist}</p>
+
+              <div className="flex items-center gap-1 mt-1 text-[11px] text-white">
+  <Star
+    className={`w-3.5 h-3.5 ${
+      getUserRatingForSong(song._id)
+        ? "fill-yellow-400 text-yellow-400"
+        : "text-white"
+    }`}
+  />
+  <span>
+    {(getAverageRatingForSong(song._id).average || 0).toFixed(1)}/5 (
+    {getAverageRatingForSong(song._id).totalRatings})
+  </span>
+</div>
+
+
           </div>
         ))}
       </div>

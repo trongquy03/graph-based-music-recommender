@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import { Clock, Heart, Pause, Play } from "lucide-react";
+import { useRatingStore } from "@/stores/useRatingStore";
+import {  Heart, Pause, Play, Star } from "lucide-react";
 import { useEffect } from "react";
 
 export const formatDuration = (seconds: number) => {
@@ -20,6 +21,11 @@ const LikedSongsPage = () => {
     fetchLikedSongs,
     unlikeSong,
   } = useMusicStore();
+
+  const {
+      getAverageRatingForSong,
+      getUserRatingForSong,
+    } = useRatingStore();
 
   const {
     currentSong,
@@ -107,7 +113,7 @@ const LikedSongsPage = () => {
                 <div>#</div>
                 <div>Tiêu đề</div>
                 <div >
-                  <Clock className="h-4 w-4" />
+                  <Star className=" h-5 w-5 fill-yellow-500" />
                 </div>
 
                 <div className="flex items-center justify-end pr-4">
@@ -149,7 +155,17 @@ const LikedSongsPage = () => {
                           </div>
                         </div>
                         <div className="flex items-center">
-                          {formatDuration(song.duration)}
+                           <div className="flex items-center gap-1 mt-1 text-[15px] ">
+                            <Star
+                              className={`w-3.5 h-3.5 ${
+                                getUserRatingForSong(song._id) ? "fill-yellow-400 text-yellow-400" : "fill-white text-white"
+                              }`}
+                            />
+                            <span className="text-white">
+                              {(getAverageRatingForSong(song._id).average || 0).toFixed(1)}/5
+                              {" "}({getAverageRatingForSong(song._id).totalRatings})
+                            </span>
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-end pr-2">

@@ -8,6 +8,7 @@ export interface Song {
     duration: number;
     createdAt: string;
     updatedAt: string;
+    avgRating: number;
 }
 
 export interface Album {

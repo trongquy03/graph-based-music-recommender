@@ -1,8 +1,10 @@
+import RatingSelector from "@/components/RatingSelector";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import LikeButton from "@/pages/home/components/LikeButton";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
+import { useRatingStore } from "@/stores/useRatingStore";
 import { useAuth } from "@clerk/clerk-react";
 import clsx from "clsx";
 import {
@@ -16,10 +18,13 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Star,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
+
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -40,21 +45,29 @@ export const PlaybackControls = () => {
     isShuffling,
   } = usePlayerStore();
   const { isSignedIn } = useAuth();
+  const { likeCounts, fetchLikeCountBySongId, likedSongIds } = useMusicStore();
+  const {
+    getUserRatingForSong,
+    getAverageRatingForSong,
+    rateSong,
+  } = useRatingStore();
+
   const [volume, setVolume] = useState(75);
   const [prevVolume, setPrevVolume] = useState(75);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const { likeCounts,fetchLikeCountBySongId, likedSongIds  } = useMusicStore();
+  const [showRatingSelector, setShowRatingSelector] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
-  if (currentSong) {
-    fetchLikeCountBySongId(currentSong._id);
+    if (currentSong) {
+      fetchLikeCountBySongId(currentSong._id);
     }
   }, [currentSong]);
+
   useEffect(() => {
     audioRef.current = document.querySelector("audio");
-
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -97,6 +110,9 @@ export const PlaybackControls = () => {
     }
   };
 
+  const userRating = currentSong ? getUserRatingForSong(currentSong._id) : null;
+  const avgRating = currentSong ? getAverageRatingForSong(currentSong._id) : { average: 0, totalRatings: 0 };
+
   return (
     <footer className="h-20 sm:h-24 bg-zinc-900 border-t border-zinc-800 px-4">
       <div className="flex justify-between items-center h-full max-w-[1800px] mx-auto">
@@ -116,6 +132,8 @@ export const PlaybackControls = () => {
                   {currentSong.artist}
                 </div>
               </div>
+              
+
             </>
           )}
         </div>
@@ -199,14 +217,47 @@ export const PlaybackControls = () => {
 
         <div className="hidden sm:flex items-center gap-4 min-w-[180px] w-[30%] justify-end">
           {currentSong && isSignedIn && (
-            <div className="flex items-center justify-center gap-2">
-              <LikeButton song={currentSong} className="hover:scale-105 opacity-100 size-5" />
-              <span className="text-sm text-zinc-400 leading-none">
-                {likeCounts[currentSong._id] ?? 0}
-              </span>
-            </div>
+              <div className="flex items-center justify-center gap-3 relative">
+                {/* Like */}
+                <LikeButton song={currentSong} className="hover:scale-105 opacity-100 size-5" />
+                <span className="text-sm text-zinc-400 leading-none">
+                  {likeCounts[currentSong._id] ?? 0}
+                </span>
 
-          )}
+                {/* Rating icon */}
+                <div className="relative flex items-center gap-1">
+                  <button
+                    onClick={() => setShowRatingSelector((prev) => !prev)}
+                    className="cursor-pointer hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={clsx(
+                        "h-5 w-5",
+                        userRating ? "fill-yellow-400 text-yellow-400" : "text-zinc-500"
+                      )}
+                    />
+                  </button>
+                  <span className="text-xs text-white/70">{avgRating.average.toFixed(1)}/5</span>
+
+                  {showRatingSelector && (
+                      <div className="absolute  bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 shadow-xl rounded-lg p-2">
+                        <RatingSelector
+                          current={userRating ?? 0}
+                          onSelect={(val) => {
+                            rateSong(currentSong._id, val);
+                            setShowRatingSelector(false);
+                          }}
+                          onClear={() => {
+                            rateSong(currentSong._id, 0);
+                            setShowRatingSelector(false);
+                            setTimeout(() => window.scrollBy(0, 1), 0);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+              </div>
+            )}
 
 
 
@@ -214,9 +265,9 @@ export const PlaybackControls = () => {
             <Mic2 className="h-4 w-4" />
           </Button>
 
-          <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
+          {/* <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
             <ListMusic className="h-4 w-4" />
-          </Button>
+          </Button> */}
 
           <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
             <Laptop2 className="h-4 w-4" />

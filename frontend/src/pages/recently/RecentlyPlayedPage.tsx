@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef  } from "react";
 import Topbar from "@/components/Topbar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Star } from "lucide-react";
+import { useRatingStore } from "@/stores/useRatingStore";
+import RatingSelector from "@/components/RatingSelector";
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -13,17 +15,52 @@ const formatDuration = (seconds: number) => {
 
 const RecentlyPlayedPage = () => {
   const { listeningHistory, fetchListeningHistory } = useMusicStore();
+  const {
+  ratings,
+  fetchUserRatings,
+  rateSong,
+  fetchAverageRating,
+  getAverageRatingForSong,
+} = useRatingStore();
+
   const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
+
+  const [ratingMap, setRatingMap] = useState<Record<string, number>>({});
+  const [selectedRatingSong, setSelectedRatingSong] = useState<string | null>(null);
+  const fetchedAvgRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchListeningHistory();
-  }, [fetchListeningHistory]);
+    fetchUserRatings();
+  }, [fetchListeningHistory, fetchUserRatings]);
 
-  // Lọc trùng liên tiếp và giới hạn 25 bài
-  const filteredHistory = listeningHistory.filter((song, index, arr) => {
-    if (index === 0) return true;
-    return song._id !== arr[index - 1]._id;
-  }).slice(0, 20);
+  useEffect(() => {
+    const map: Record<string, number> = {};
+    ratings.forEach((r) => {
+      map[r.song._id] = r.rating;
+    });
+    setRatingMap(map);
+  }, [ratings]);
+
+  const filteredHistory = listeningHistory
+    .filter((song, index, arr) => {
+      if (!song || !arr[index - 1]) return true;
+      if (index === 0) return true;
+      return song._id !== arr[index - 1]._id;
+    })
+    .filter(Boolean)
+    .slice(0, 20);
+
+    useEffect(() => {
+      filteredHistory.forEach((song) => {
+        if (!fetchedAvgRef.current[song._id]) {
+          fetchedAvgRef.current[song._id] = true;
+          fetchAverageRating(song._id);
+        }
+      });
+    }, [filteredHistory]);
+
+
 
   const handlePlay = (index: number) => {
     const song = filteredHistory[index];
@@ -32,6 +69,23 @@ const RecentlyPlayedPage = () => {
     } else {
       playAlbum(filteredHistory, index);
     }
+  };
+
+  const handleRate = (e: React.MouseEvent, songId: string) => {
+    e.stopPropagation();
+    setSelectedRatingSong(songId === selectedRatingSong ? null : songId);
+  };
+
+  const handleSelectRating = (songId: string, value: number) => {
+    rateSong(songId, value);
+    setRatingMap((prev) => ({ ...prev, [songId]: value }));
+    setSelectedRatingSong(null);
+  };
+
+  const handleClearRating = (songId: string) => {
+    rateSong(songId, 0); // hoặc gọi API DELETE
+    setRatingMap((prev) => ({ ...prev, [songId]: 0 }));
+    setSelectedRatingSong(null);
   };
 
   return (
@@ -44,29 +98,56 @@ const RecentlyPlayedPage = () => {
               ⏱️
             </div> */}
             <div>
-              {/* <p className="text-sm text-white font-medium">Playlist</p> */}
               <h1 className="text-4xl md:text-2xl font-bold text-white mt-1">Nghe gần đây</h1>
-              {/* <p className="text-zinc-300 text-sm mt-1">{filteredHistory.length} bài hát</p> */}
             </div>
           </div>
 
           <div className="space-y-2">
             {filteredHistory.map((song, index) => {
               const isCurrent = song._id === currentSong?._id;
+              const currentRating = ratingMap[song._id] ?? 0;
 
               return (
                 <div
-                  key={`${song._id}-${index}`} // thêm index để tránh trùng key nếu bài trùng không liền kề
+                  key={`${song._id}-${index}`}
                   onClick={() => handlePlay(index)}
-                  className="flex items-center gap-4 p-3 rounded hover:bg-white/10 cursor-pointer"
+                  className="grid grid-cols-[auto_1fr_120px_60px_40px] items-center gap-4 p-3 rounded hover:bg-white/10 cursor-pointer relative"
                 >
                   <img src={song.imageUrl} className="size-12 rounded" />
-                  <div className="flex-1">
+                  <div className="flex flex-col">
                     <div className="text-white font-medium">{song.title}</div>
                     <div className="text-zinc-400 text-sm">{song.artist}</div>
                   </div>
 
-                  <div className="w-20 text-center text-sm text-zinc-400">
+                  <div className="relative flex items-center justify-center gap-2">
+                    <div
+                      onClick={(e) => handleRate(e, song._id)}
+                      className="cursor-pointer"
+                    >
+                      <Star
+                        className={`h-5 w-5 transition ${
+                          currentRating > 0 ? "fill-yellow-400" : "text-zinc-500"
+                        }`}
+                      />
+                    </div>
+                    <span className="text-sm text-white/60">
+                  {(getAverageRatingForSong(song._id).average || 0).toFixed(1)}/5 
+                  ({getAverageRatingForSong(song._id).totalRatings})
+                </span>
+
+
+                    {selectedRatingSong === song._id && (
+                      <div className="absolute top-7 z-50">
+                        <RatingSelector
+                          current={currentRating}
+                          onSelect={(val) => handleSelectRating(song._id, val)}
+                          onClear={() => handleClearRating(song._id)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-sm text-zinc-400 text-center">
                     {formatDuration(song.duration)}
                   </div>
 
