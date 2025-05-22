@@ -26,6 +26,7 @@ const LeftSidebar = () => {
       {/* Navigation menu */}
       <div className="rounded-lg bg-zinc-900 p-4">
         <div className="space-y-2">
+          
           <Link
             to={"/"}
             className={cn(
@@ -35,9 +36,10 @@ const LeftSidebar = () => {
               })
             )}
           >
-            <HomeIcon className="mr-2 size-5" />
+            <HomeIcon className="mr-2 size-5 " />
             <span className="hidden md:inline">Trang chủ</span>
           </Link>
+         
 
           <SignedIn>
             <Link
@@ -49,7 +51,7 @@ const LeftSidebar = () => {
                 })
               )}
             >
-              <MessageCircle className="mr-2 size-5" />
+              <MessageCircle className="mr-2 size-5 fill-white" />
               <span className="hidden md:inline">Messages</span>
             </Link>
 

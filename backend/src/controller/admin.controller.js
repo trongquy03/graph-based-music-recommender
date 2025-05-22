@@ -1,7 +1,7 @@
 import {Song} from "../models/song.model.js";
 import {Album} from "../models/album.model.js"
 import cloudinary from "../lib/cloudinary.js"
-import e from "express";
+import { removeVietnameseTones } from "../lib/removeDiacritics.js";
 
 //helper function for cloudinary uploads
 const uploadToCloudinary = async (file) => {
@@ -35,7 +35,9 @@ export const createSong = async (req, res, next) => {
             audioUrl,
             imageUrl,
             duration,
-            albumId: albumId || null
+            albumId: albumId || null,
+            title_normalized: removeVietnameseTones(title.toLowerCase()),
+            artist_normalized: removeVietnameseTones(artist.toLowerCase()),
         })
 
         await song.save()
@@ -87,7 +89,9 @@ export const createAlbum = async (req, res, next) => {
         const imageUrl = await uploadToCloudinary(imageFile)
 
         const album = new Album({
-            title,artist,imageUrl,releaseYear
+            title,artist,imageUrl,releaseYear,
+            title_normalized: removeVietnameseTones(title.toLowerCase()),
+            artist_normalized: removeVietnameseTones(artist.toLowerCase()),
         })
 
         await album.save()

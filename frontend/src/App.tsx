@@ -13,6 +13,7 @@ import NotFoundPage from "./pages/404/NotFoundPage";
 import LoginPage from "./pages/login/LoginPage";
 import LikedSongPage from "./pages/like/LikedSongPage";
 import RecentlyPlayedPage from "./pages/recently/RecentlyPlayedPage";
+import SearchPage from "./pages/search/SearchPage";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/chat" element={<ChatPage/>} />
           <Route path="/albums/:albumId" element={<AlbumPage/>} />
           <Route path="/liked-songs" element={<LikedSongPage/>} />
+          <Route path="/search" element={<SearchPage/>} />
           <Route path="/recently-played" element={<RecentlyPlayedPage/>} />
           <Route path="/*" element={<NotFoundPage/>} />
       </Route>

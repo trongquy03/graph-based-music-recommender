@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Button, buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
+import { SearchBox } from "@/pages/search/components/SearchBox";
+import { MobileSearch } from "@/pages/search/components/MobileSearch";
 
 const Topbar = () => {
     const { isAdmin } = useAuthStore();
@@ -18,15 +20,11 @@ const Topbar = () => {
             TuneWise
         </div>
         </Link>
-        {/* Search bar */}
-        <input
-          type="text"
-          placeholder="Tìm kiếm bài hát"
-        //   value={searchQuery}
-        //   onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 min-w-[200px] max-w-[400px] bg-zinc-800 text-white px-4 py-2 rounded-md outline-none border border-zinc-700 placeholder:text-zinc-400 text-base"
-        />
         
+        <div className="w-full max-w-md mx-4">
+          {/* <MobileSearch /> */}
+          <SearchBox />
+        </div>
 
         <div className="flex items-center gap-4">
             {isAdmin && (

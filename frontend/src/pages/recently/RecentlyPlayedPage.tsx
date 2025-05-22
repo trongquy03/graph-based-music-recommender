@@ -3,7 +3,7 @@ import Topbar from "@/components/Topbar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import { Play, Pause, Star } from "lucide-react";
+import { Play, Pause, Star, Clock } from "lucide-react";
 import { useRatingStore } from "@/stores/useRatingStore";
 import RatingSelector from "@/components/RatingSelector";
 
@@ -94,9 +94,10 @@ const RecentlyPlayedPage = () => {
       <ScrollArea className="h-full rounded-md">
         <div className="p-6">
           <div className="flex items-center gap-4 mb-6">
-            {/* <div className="bg-gradient-to-br from-yellow-500 to-pink-500 size-20 flex items-center justify-center rounded text-white text-3xl font-bold">
-              ⏱️
+            {/* <div className="bg-gradient-to-br from-yellow-500 to-pink-500 size-10 flex items-center justify-center rounded text-white text-3xl font-bold">
+              <Clock className="size-20 text-white" />
             </div> */}
+            {/* <Clock className="size-20 text-white" /> */}
             <div>
               <h1 className="text-4xl md:text-2xl font-bold text-white mt-1">Nghe gần đây</h1>
             </div>
