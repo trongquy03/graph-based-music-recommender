@@ -1,5 +1,6 @@
 import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
+import { Artist } from "../models/artist.model.js";
 import { removeVietnameseTones } from "../lib/removeDiacritics.js";
 
 export const getSearchResults = async (req, res) => {
@@ -13,24 +14,32 @@ export const getSearchResults = async (req, res) => {
   const searchRegex = new RegExp(normalizedQuery, "i");
 
   try {
+    const matchedArtists = await Artist.find({
+      name_normalized: searchRegex,
+    }).select("_id");
+
+    const artistIds = matchedArtists.map((artist) => artist._id);
+
     const [songs, albums] = await Promise.all([
       Song.find({
         $or: [
           { title_normalized: searchRegex },
-          { artist_normalized: searchRegex },
+          { artist: { $in: artistIds } },
         ],
       })
         .sort({ featured: -1, createdAt: -1 })
-        .limit(10),
+        .limit(10)
+        .populate("artist", "name"),
 
       Album.find({
         $or: [
           { title_normalized: searchRegex },
-          { artist_normalized: searchRegex },
+          { artist: { $in: artistIds } },
         ],
       })
         .sort({ createdAt: -1 })
-        .limit(10),
+        .limit(10)
+        .populate("artist", "name"),
     ]);
 
     return res.json({ songs, albums });

@@ -50,13 +50,13 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
         {songsToDisplay.map((song) => (
           <div
             key={song._id}
-            className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all cursor-pointer"
+            className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all"
           >
             <div className="relative group mb-4">
               {isSignedIn && (
               <LikeButton
                 song={song}
-                className={` absolute top-3 right-2 z-10 transition-opacity scale-150 ${
+                className={` absolute top-3 right-2 z-10 transition-opacity scale-150 cursor-pointer ${
                 likedSongIds.includes(song._id)
                   ? "opacity-100"
                   : "opacity-0 group-hover:opacity-100"
@@ -75,7 +75,7 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
             </div>
 
             <h3 className="font-medium mb-2 truncate">{song.title}</h3>
-            <p className="text-sm text-zinc-400 truncate">{song.artist}</p>
+            <p className="text-sm text-zinc-400 truncate">{typeof song.artist === "object" ? song.artist.name : song.artist}</p>
 
               <div className="flex items-center gap-1 mt-1 text-[11px] text-white">
   <Star

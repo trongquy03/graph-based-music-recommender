@@ -5,6 +5,7 @@ import LikeButton from "./LikeButton";
 import { useAuth } from "@clerk/clerk-react";
 import { useRatingStore } from "@/stores/useRatingStore";
 import { Star } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 const FeaturedSection = () => {
   const { isLoading, featuredSongs, error } = useMusicStore();
@@ -12,7 +13,19 @@ const FeaturedSection = () => {
   const {
     getAverageRatingForSong,
     getUserRatingForSong,
+    fetchAverageRating
   } = useRatingStore();
+
+  const fetchedRef = useRef<Record<string, boolean>>({});
+
+useEffect(() => {
+  featuredSongs.forEach((song) => {
+    if (!fetchedRef.current[song._id]) {
+      fetchedRef.current[song._id] = true;
+      fetchAverageRating(song._id);
+    }
+  });
+}, [featuredSongs]);
 
   if (isLoading) return <FeaturedGridSkeleton />;
 
@@ -37,7 +50,7 @@ const FeaturedSection = () => {
   
 			{isSignedIn && (
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-              <LikeButton song={song} className="scale-90" />
+              <LikeButton song={song} className="scale-90 cursor-pointer" />
             	</div>
             	)}
           	</div>
@@ -51,13 +64,21 @@ const FeaturedSection = () => {
                 {song.title}
               </p>
             </div>
-            <p className="text-sm text-zinc-400 truncate">{song.artist}</p>
+            <p className="text-sm text-zinc-400 truncate">
+            {typeof song.artist === "object" && song.artist !== null
+              ? song.artist.name
+              : song.artist}
+          </p>
+
               <div className="flex items-center gap-1 mt-1 text-[11px] ">
+                {song && song._id && (
                 <Star
                   className={`w-3.5 h-3.5 ${
                     getUserRatingForSong(song._id) ? "fill-yellow-400 text-yellow-400" : "fill-white text-white"
                   }`}
                 />
+              )}
+
                 <span className="text-white">
                   {(getAverageRatingForSong(song._id).average || 0).toFixed(1)}/5
                   {" "}({getAverageRatingForSong(song._id).totalRatings})
@@ -68,7 +89,7 @@ const FeaturedSection = () => {
           </div>
 
           <div className="pr-4">
-            <PlayButton song={song} />
+            <PlayButton song={song}/>
           </div>
         </div>
       ))}

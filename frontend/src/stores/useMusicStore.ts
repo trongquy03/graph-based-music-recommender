@@ -6,7 +6,7 @@ import { create } from "zustand";
 const fetchLikeCount = async (songId: string): Promise<number> => {
   try {
     const response = await axiosInstance.get(`/likes/count/${songId}`);
-	console.log(response.data)
+	  // console.log(response.data)
     return response.data.likeCount;
   } catch (error) {
     console.error("Failed to fetch like count", error);
@@ -189,6 +189,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   fetchLikedSongs: async () => {
     const { hasFetchedLikes } = get();
     if (hasFetchedLikes) return;
+    console.trace("🔍 fetchLikedSongs() được gọi ở đâu?");
 
     set({ isLoading: true, error: null });
 

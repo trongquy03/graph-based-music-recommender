@@ -5,7 +5,10 @@ import mongoose from "mongoose";
 export const getRatings = async (req, res, next) => {
   try {
     const userId = req.auth.userId;
-    const ratings = await Rating.find({ user: userId }).populate("song");
+    const ratings = await Rating.find({ user: userId }).populate({
+                path: "song",
+                populate: { path: "artist", select: "name" },
+            });
     res.status(200).json(ratings);
   } catch (err) {
     next(err);

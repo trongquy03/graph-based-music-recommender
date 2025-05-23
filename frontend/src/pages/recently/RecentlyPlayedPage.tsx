@@ -3,7 +3,7 @@ import Topbar from "@/components/Topbar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import { Play, Pause, Star, Clock } from "lucide-react";
+import { Play, Pause, Star } from "lucide-react";
 import { useRatingStore } from "@/stores/useRatingStore";
 import RatingSelector from "@/components/RatingSelector";
 
@@ -117,7 +117,9 @@ const RecentlyPlayedPage = () => {
                   <img src={song.imageUrl} className="size-12 rounded" />
                   <div className="flex flex-col">
                     <div className="text-white font-medium">{song.title}</div>
-                    <div className="text-zinc-400 text-sm">{song.artist}</div>
+                    <div className="text-zinc-400 text-sm">
+                      {typeof song.artist === "object" && song.artist !== null ? song.artist.name : song.artist}
+                    </div>
                   </div>
 
                   <div className="relative flex items-center justify-center gap-2">

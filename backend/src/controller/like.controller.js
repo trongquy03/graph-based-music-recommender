@@ -4,7 +4,11 @@ import { Like } from "../models/like.model.js";
 export const getLikes = async (req, res, next) => {
     try {
         const userId = req.auth.userId;
-        const likes = await Like.find({ user: userId }).populate("song");
+        const likes = await Like.find({ user: userId })
+            .populate({
+                path: "song",
+                populate: { path: "artist", select: "name" },
+            });
         res.status(200).json(likes);
     } catch (error) {
         next(error);

@@ -21,8 +21,11 @@ export const getListeningHistory = async (req, res) => {
 
     try {
         const history = await ListeningHistory.find({ user: userId })
-            .populate("song")
-            .sort({ listenedAt: -1 }); // mới nhất trước
+            .populate({
+                path: "song",
+                populate: { path: "artist", select: "name" },
+            })
+            .sort({ listenedAt: -1 });// mới nhất trước
 
         res.status(200).json(history);
     } catch (err) {

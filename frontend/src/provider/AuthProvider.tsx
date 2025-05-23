@@ -25,9 +25,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 				if (token) {
 					await checkAdminStatus();
-
-					// ✅ Đồng bộ danh sách bài hát đã like
-					await useMusicStore.getState().fetchLikedSongs();
+					
+					 await useMusicStore.getState().fetchLikedSongs();
 
 					if (userId) initSocket(userId);
 				}

@@ -53,8 +53,11 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
     try {
       await axiosInstance.post("/ratings", { songId, rating });
       toast.success("Đã đánh giá bài hát");
-      await get().fetchUserRatings();
-      await get().fetchAverageRating(songId);
+      await Promise.all([
+          get().fetchUserRatings(),
+          get().fetchAverageRating(songId),
+        ]);
+
     } catch (error: any) {
       toast.error("Không thể đánh giá");
       set({ error: error.message });

@@ -51,7 +51,7 @@ const SearchPage = () => {
 
   return (
     <main className="rounded-md overflow-hidden h-full bg-gradient-to-b from-zinc-800 to-zinc-900">
-      <Topbar />
+      {/* <Topbar /> */}
       <ScrollArea className="h-[calc(100vh-180px)]">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold mb-6 mt-4">
@@ -104,7 +104,7 @@ const SearchPage = () => {
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <p className="font-medium truncate text-white">{song.title}</p>
-                      <p className="text-sm text-zinc-400 truncate">{song.artist}</p>
+                      <p className="text-sm text-zinc-400 truncate">{typeof song.artist === "object" ? song.artist.name : song.artist}</p>
                     </div>
                     <p className="text-xs text-zinc-400 w-10 text-right">{formatDuration(song.duration)}</p>
                     <LikeButton song={song} />
@@ -133,11 +133,14 @@ const SearchPage = () => {
                   <div
                     key={album._id}
                     className="p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer"
-                    onClick={() => navigate(`/album/${album._id}`)}
+                    onClick={() => navigate(`/albums/${album._id}`)}
                   >
                     <img src={album.imageUrl} alt={album.title} className="w-full h-40 object-cover rounded mb-2" />
                     <p className="font-medium truncate text-white">{album.title}</p>
-                    <p className="text-sm text-zinc-400 truncate">{album.artist}</p>
+                    <p className="text-sm text-zinc-400 truncate">{typeof album.artist === "object" && album.artist !== null
+  ? album.artist.name
+  : album.artist}
+</p>
                   </div>
                 ))}
               </div>

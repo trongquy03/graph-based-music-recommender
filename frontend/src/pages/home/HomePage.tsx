@@ -30,7 +30,7 @@ const HomePage = () => {
 		}
 	}, [initializeQueue, madeForYouSongs, trendingSongs, featuredSongs]);
 
-  console.log({isLoading, madeForYouSongs, featuredSongs, trendingSongs})
+  // console.log({isLoading, madeForYouSongs, featuredSongs, trendingSongs})
   return (
     <main className="rounded-md overflow-hidden h-full bg-gradient-to-b from-zinc-800 to-zinc-900">
       <Topbar/>

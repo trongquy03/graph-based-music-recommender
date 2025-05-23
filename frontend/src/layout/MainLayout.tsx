@@ -23,7 +23,7 @@ const MainLayout = () => {
             <ResizablePanelGroup direction="horizontal" className="flex-1 flex h-full overflow-hidden p-2">
                 <AudioPlayer/>
                 {/* Left sidebar */}
-                <ResizablePanel defaultSize={20} minSize={isMobile ?0:10} maxSize={30}>
+                <ResizablePanel defaultSize={10} minSize={isMobile ?0:10} maxSize={25}>
                     <LeftSidebar />
                 </ResizablePanel>
 
@@ -38,9 +38,9 @@ const MainLayout = () => {
                     <>
                     <ResizableHandle className="w-2 bg-black rounded-lg transition-colors" />
                         {/* Right sidebar */}
-                        <ResizablePanel defaultSize={20} minSize={0} maxSize={25} collapsedSize={0}>
+                        {/* <ResizablePanel defaultSize={20} minSize={0} maxSize={25} collapsedSize={0}>
                             <FriendsActivity/>
-                        </ResizablePanel>
+                        </ResizablePanel> */}
                     </>
                 )}
 

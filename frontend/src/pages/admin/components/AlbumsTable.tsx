@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useMusicStore } from "@/stores/useMusicStore";
 import { Calendar, Music, Trash2 } from "lucide-react";
 import { useEffect } from "react";
+import UpdateAlbumsDialog from "./UpdateAlbumsDialog";
 
 const AlbumsTable = () => {
 	const { albums, deleteAlbum, fetchAlbums } = useMusicStore();
@@ -30,7 +31,9 @@ const AlbumsTable = () => {
 							<img src={album.imageUrl} alt={album.title} className='w-10 h-10 rounded object-cover' />
 						</TableCell>
 						<TableCell className='font-medium'>{album.title}</TableCell>
-						<TableCell>{album.artist}</TableCell>
+						<TableCell>
+						{typeof album.artist === "object" && album.artist !== null ? album.artist.name : album.artist}
+						</TableCell>
 						<TableCell>
 							<span className='inline-flex items-center gap-1 text-zinc-400'>
 								<Calendar className='h-4 w-4' />
@@ -45,6 +48,7 @@ const AlbumsTable = () => {
 						</TableCell>
 						<TableCell className='text-right'>
 							<div className='flex gap-2 justify-end'>
+								<UpdateAlbumsDialog album={album} />
 								<Button
 									variant='ghost'
 									size='sm'

@@ -129,8 +129,10 @@ export const PlaybackControls = () => {
                   {currentSong.title}
                 </div>
                 <div className="text-sm text-zinc-400 truncate hover:underline cursor-pointer">
-                  {currentSong.artist}
-                </div>
+                {typeof currentSong.artist === "object" && currentSong.artist !== null
+                  ? currentSong.artist.name
+                  : currentSong.artist}
+              </div>
               </div>
               
 

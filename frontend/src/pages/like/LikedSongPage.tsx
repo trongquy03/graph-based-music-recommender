@@ -151,7 +151,7 @@ const LikedSongsPage = () => {
                           />
                           <div>
                             <div className="font-medium text-white">{song.title}</div>
-                            <div>{song.artist}</div>
+                            <div>{typeof song.artist === "object" ? song.artist.name : song.artist}</div>
                           </div>
                         </div>
                         <div className="flex items-center">

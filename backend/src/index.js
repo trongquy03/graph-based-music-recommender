@@ -18,6 +18,7 @@ import likeRoutes from "./routes/like.route.js"
 import ratingRoutes from "./routes/rating.route.js"
 import historyRoutes from "./routes/history.route.js"
 import searchRoutes from "./routes/search.route.js"
+import artistRoutes from "./routes/artist.route.js"
 import { connectDB } from "./lib/db.js";
 
 
@@ -53,6 +54,7 @@ app.use(fileUpload({
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/artist", artistRoutes);
 app.use("/api/songs", songRoutes);
 app.use("/api/albums", albumRoutes);
 app.use("/api/stats", statRoutes);

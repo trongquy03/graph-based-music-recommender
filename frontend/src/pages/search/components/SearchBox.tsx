@@ -76,6 +76,7 @@ export const SearchBox = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      
       clear();
     }
   };
@@ -124,7 +125,7 @@ export const SearchBox = () => {
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <p className="text-white font-semibold truncate">{song.title}</p>
-                      <p className="text-xs text-zinc-500 truncate">{song.artist}</p>
+                      <p className="text-xs text-zinc-500 truncate">{typeof song.artist === "object" ? song.artist.name : song.artist}</p>
                     </div>
                     {isSignedIn && (
                       <div
@@ -150,7 +151,7 @@ export const SearchBox = () => {
                   key={album._id}
                   className="flex items-center gap-3 p-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer"
                   onClick={() => {
-                    navigate(`/album/${album._id}`);
+                    navigate(`/albums/${album._id}`);
                   }}
                 >
                   <img
@@ -160,7 +161,10 @@ export const SearchBox = () => {
                   />
                   <div className="flex-1 overflow-hidden">
                     <p className="text-white font-semibold truncate">{album.title}</p>
-                    <p className="text-xs text-zinc-500 truncate">{album.artist}</p>
+                    <p className="text-xs text-zinc-500 truncate">{typeof album.artist === "object" && album.artist !== null
+                          ? album.artist.name
+                          : album.artist}
+                        </p>
                   </div>
                 </div>
               ))}

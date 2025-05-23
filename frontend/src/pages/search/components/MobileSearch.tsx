@@ -69,7 +69,7 @@ export const MobileSearch = () => {
                       handleClose();
                     }}
                   >
-                    {song.title} – <span className="text-zinc-400">{song.artist}</span>
+                    {song.title} – <span className="text-zinc-400">{typeof song.artist === "object" ? song.artist.name : song.artist}</span>
                   </div>
                 ))}
               </div>
@@ -85,7 +85,9 @@ export const MobileSearch = () => {
                       handleClose();
                     }}
                   >
-                    {album.title} – <span className="text-zinc-400">{album.artist}</span>
+                    {album.title} – <span className="text-zinc-400">{typeof album.artist === "object" && album.artist !== null
+  ? album.artist.name
+  : album.artist}</span>
                   </div>
                 ))}
               </div>
