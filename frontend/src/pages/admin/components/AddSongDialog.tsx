@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import SearchableSelectDialog from "./SearchableSelect";
 import AudioFileInput from "./AudioFileInput";
+import { uploadToCloudinarySigned } from "@/lib/uploadToCloudinarySigned";
 
 interface NewSong {
   title: string;
@@ -50,41 +51,44 @@ const AddSongDialog = () => {
     fetchArtists();
   }, [fetchArtists]);
 
-  const handleSubmit = async () => {
-    setIsLoading(true);
+const handleSubmit = async () => {
+  setIsLoading(true);
 
-    try {
-      if (!files.audio || !files.image) {
-        return toast.error("Please upload both audio and image files");
-      }
-
-      const formData = new FormData();
-      formData.append("title", newSong.title);
-      formData.append("artistId", newSong.artist);
-      formData.append("duration", newSong.duration);
-
-      if (newSong.album && newSong.album !== "none") {
-        formData.append("albumId", newSong.album);
-      }
-
-      formData.append("audioFile", files.audio);
-      formData.append("imageFile", files.image);
-
-      await axiosInstance.post("/admin/songs", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setNewSong({ title: "", artist: "", album: "", duration: "0" });
-      setFiles({ audio: null, image: null });
-      toast.success("Song added successfully");
-    } catch (error: any) {
-      toast.error("Failed to add song: " + error.message);
-    } finally {
-      setIsLoading(false);
+  try {
+    if (!files.audio || !files.image) {
+      toast.error("Please upload both audio and image files");
+      return;
     }
-  };
+
+    // Upload file lên Cloudinary
+    const audioUrl = await uploadToCloudinarySigned(files.audio, "video");
+    console.log("Uploading audio file:", files.audio);
+
+    const imageUrl = await uploadToCloudinarySigned(files.image, "image");
+    console.log("Uploading image file:", files.image);
+
+
+    // Gửi dữ liệu đến backend
+    await axiosInstance.post("/admin/songs", {
+      title: newSong.title,
+      artistId: newSong.artist,
+      albumId: newSong.album === "none" ? null : newSong.album,
+      duration: newSong.duration,
+      audioUrl,
+      imageUrl,
+    });
+
+    toast.success("Song added successfully");
+    setNewSong({ title: "", artist: "", album: "", duration: "0" });
+    setFiles({ audio: null, image: null });
+    setSongDialogOpen(false);
+  } catch (error: any) {
+    toast.error("Failed to add song: " + error.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <Dialog open={songDialogOpen} onOpenChange={setSongDialogOpen}>

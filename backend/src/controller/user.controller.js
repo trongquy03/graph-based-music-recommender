@@ -11,6 +11,25 @@ export const getAllUsers = async (req, res, next) => {
     }
 };
 
+export const getFollowedArtists = async (req, res) => {
+  const userId = req.auth?.userId;
+
+  try {
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const user = await User.findOne({ clerkId: userId }).populate("followedArtists");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    return res.status(200).json({
+      count: user.followedArtists.length,
+      artists: user.followedArtists,
+    });
+  } catch (error) {
+    console.error("Error fetching followed artists:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const getMessages = async (req, res, next) => {
 	try {
 		const myId = req.auth.userId;

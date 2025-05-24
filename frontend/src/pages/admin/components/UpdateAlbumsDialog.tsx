@@ -45,7 +45,7 @@ const UpdateAlbumsDialog = ({ album }: Props) => {
     try {
       const formData = new FormData();
       formData.append("title", updatedAlbum.title);
-      formData.append("artist", updatedAlbum.artist);
+      formData.append("artistId", updatedAlbum.artist);
       formData.append("releaseYear", String(updatedAlbum.releaseYear));
       if (imageFile) formData.append("imageFile", imageFile);
 

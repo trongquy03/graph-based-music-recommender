@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { useArtistStore } from "@/stores/useArtistStore";
 import { useEffect } from "react";
 import SearchableSelectDialog from "./SearchableSelect";
+import { uploadToCloudinarySigned } from "@/lib/uploadToCloudinarySigned";
 
 const AddAlbumDialog = () => {
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
@@ -43,40 +44,36 @@ const AddAlbumDialog = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    setIsLoading(true);
-
-    try {
-      if (!imageFile) {
-        return toast.error("Please upload an image");
-      }
-
-      const formData = new FormData();
-      formData.append("title", newAlbum.title);
-      formData.append("artist", newAlbum.artist);
-      formData.append("releaseYear", newAlbum.releaseYear.toString());
-      formData.append("imageFile", imageFile);
-
-      await axiosInstance.post("/admin/albums", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setNewAlbum({
-        title: "",
-        artist: "",
-        releaseYear: new Date().getFullYear(),
-      });
-      setImageFile(null);
-      setAlbumDialogOpen(false);
-      toast.success("Album created successfully");
-    } catch (error: any) {
-      toast.error("Failed to create album: " + error.message);
-    } finally {
-      setIsLoading(false);
+const handleSubmit = async () => {
+  setIsLoading(true);
+  try {
+    if (!imageFile) {
+      return toast.error("Please upload an image");
     }
-  };
+
+    const imageUrl = await uploadToCloudinarySigned(imageFile, "image");
+
+    await axiosInstance.post("/admin/albums", {
+      title: newAlbum.title,
+      artistId: newAlbum.artist,
+      releaseYear: newAlbum.releaseYear,
+      imageUrl,
+    });
+
+    toast.success("Album created successfully");
+    setNewAlbum({
+      title: "",
+      artist: "",
+      releaseYear: new Date().getFullYear(),
+    });
+    setImageFile(null);
+    setAlbumDialogOpen(false);
+  } catch (error: any) {
+    toast.error("Failed to create album: " + error.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <Dialog open={albumDialogOpen} onOpenChange={setAlbumDialogOpen}>

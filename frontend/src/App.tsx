@@ -14,6 +14,9 @@ import LoginPage from "./pages/login/LoginPage";
 import LikedSongPage from "./pages/like/LikedSongPage";
 import RecentlyPlayedPage from "./pages/recently/RecentlyPlayedPage";
 import SearchPage from "./pages/search/SearchPage";
+import ArtistPage from "./pages/artist/ArtistPage";
+import ArtistDetailPage from "./pages/artist/ArtistDetailPage";
+import ArtistSongsPage from "./pages/artist/components/ArtistSongsPage";
 
 function App() {
   return (
@@ -28,6 +31,9 @@ function App() {
           <Route path="/" element={<HomePage/>} /> 
           <Route path="/chat" element={<ChatPage/>} />
           <Route path="/albums/:albumId" element={<AlbumPage/>} />
+          <Route path="/artists" element={<ArtistPage/>} />
+          <Route path="/artists/:artistId" element={<ArtistDetailPage/>} />
+          <Route path="/artists/:artistId/songs" element={<ArtistSongsPage/>} />
           <Route path="/liked-songs" element={<LikedSongPage/>} />
           <Route path="/search" element={<SearchPage/>} />
           <Route path="/recently-played" element={<RecentlyPlayedPage/>} />

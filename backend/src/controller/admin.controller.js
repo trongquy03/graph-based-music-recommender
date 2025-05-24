@@ -19,16 +19,13 @@ const uploadToCloudinary = async (file) => {
 
 export const createArtist = async (req, res, next) => {
   try {
-    const { name, bio } = req.body;
+    const { name, bio, imageUrl } = req.body;
 
-    if (!name) return res.status(400).json({ message: "Artist name is required" });
+    if (!name || !imageUrl)
+      return res.status(400).json({ message: "Name and imageUrl are required" });
+
     const existing = await Artist.findOne({ name });
     if (existing) return res.status(409).json({ message: "Artist already exists" });
-
-    let imageUrl = "";
-    if (req.files?.imageFile) {
-      imageUrl = await uploadToCloudinary(req.files.imageFile);
-    }
 
     const artist = new Artist({
       name,
@@ -46,19 +43,18 @@ export const createArtist = async (req, res, next) => {
 };
 
 
+
 export const updateArtist = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, bio } = req.body;
+    const { name, bio, imageUrl } = req.body;
 
     const existingArtist = await Artist.findById(id);
     if (!existingArtist) return res.status(404).json({ message: "Artist not found" });
 
-    let imageUrl = existingArtist.imageUrl;
-
-    if (req.files?.imageFile) {
+    // Nếu ảnh đổi → xóa ảnh cũ
+    if (imageUrl && imageUrl !== existingArtist.imageUrl) {
       await deleteFromCloudinary(existingArtist.imageUrl);
-      imageUrl = await uploadToCloudinary(req.files.imageFile);
     }
 
     const updatedArtist = await Artist.findByIdAndUpdate(
@@ -66,7 +62,7 @@ export const updateArtist = async (req, res, next) => {
       {
         name,
         bio,
-        imageUrl,
+        imageUrl: imageUrl || existingArtist.imageUrl,
         name_normalized: removeVietnameseTones(name.toLowerCase()),
       },
       { new: true }
@@ -99,64 +95,63 @@ export const deleteArtist = async (req, res, next) => {
 
 
 export const createSong = async (req, res, next) => {
-    try {
-        if (!req.files || !req.files.audioFile || !req.files.imageFile) {
-            return res.status(400).json({message: "please upload all files"});
-        }
+  try {
+    const { title, artistId, albumId, duration, audioUrl, imageUrl } = req.body;
 
-        const {title, artistId, albumId, duration} = req.body
-        const audioFile = req.files.audioFile
-        const imageFile = req.files.imageFile
-
-        const audioUrl = await uploadToCloudinary(audioFile);
-        const imageUrl = await uploadToCloudinary(imageFile);
-
-        const song = new Song({
-            title,
-            artist: artistId,
-            audioUrl,
-            imageUrl,
-            duration,
-            albumId: albumId || null,
-            title_normalized: removeVietnameseTones(title.toLowerCase()),
-        })
-
-        await song.save()
-
-        if (albumId) {
-            await Album.findByIdAndUpdate(albumId, {
-                $push: { songs: song._id },
-
-            });
-        }
-        res.status(201).json(song)
-    } catch (error) {
-        console.log("Error in createSong", error);
-        next(error);
+    if (!title || !artistId || !audioUrl || !imageUrl) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
-}
+
+    const song = new Song({
+      title,
+      artist: artistId,
+      audioUrl,
+      imageUrl,
+      duration,
+      albumId: albumId || null,
+      title_normalized: removeVietnameseTones(title.toLowerCase()),
+    });
+
+    await song.save();
+
+    if (albumId) {
+      await Album.findByIdAndUpdate(albumId, {
+        $push: { songs: song._id },
+      });
+    }
+
+    res.status(201).json(song);
+  } catch (error) {
+    console.error("Error in createSong:", error);
+    next(error);
+  }
+};
+
 
 export const updateSong = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, artistId, albumId, duration } = req.body;
+    const { title, artistId, albumId, duration, audioUrl, imageUrl } = req.body;
 
     const existingSong = await Song.findById(id);
     if (!existingSong) return res.status(404).json({ message: "Song not found" });
 
-    let imageUrl = existingSong.imageUrl;
-    let audioUrl = existingSong.audioUrl;
-
-    if (req.files?.imageFile) {
-      //  Xóa ảnh cũ nếu có file mới
+    if (imageUrl && imageUrl !== existingSong.imageUrl) {
       await deleteFromCloudinary(existingSong.imageUrl);
-      imageUrl = await uploadToCloudinary(req.files.imageFile);
     }
 
-    if (req.files?.audioFile) {
-      // Xóa audio cũ nếu có file mới
+    if (audioUrl && audioUrl !== existingSong.audioUrl) {
       await deleteFromCloudinary(existingSong.audioUrl);
-      audioUrl = await uploadToCloudinary(req.files.audioFile);
+    }
+
+    // Nếu đổi album → gỡ khỏi album cũ
+    if (
+      existingSong.albumId &&
+      (!albumId || existingSong.albumId.toString() !== albumId)
+    ) {
+      await Album.findByIdAndUpdate(existingSong.albumId, {
+        $pull: { songs: existingSong._id },
+      });
     }
 
     const updatedSong = await Song.findByIdAndUpdate(
@@ -164,14 +159,24 @@ export const updateSong = async (req, res, next) => {
       {
         title,
         artist: artistId,
-        albumId,
+        albumId: albumId === "none" ? null : albumId,
         duration,
-        imageUrl,
-        audioUrl,
+        audioUrl: audioUrl || existingSong.audioUrl,
+        imageUrl: imageUrl || existingSong.imageUrl,
         title_normalized: removeVietnameseTones(title.toLowerCase()),
       },
       { new: true }
     );
+
+    // Nếu thêm vào album mới
+    if (
+      albumId &&
+      (!existingSong.albumId || existingSong.albumId.toString() !== albumId)
+    ) {
+      await Album.findByIdAndUpdate(albumId, {
+        $addToSet: { songs: updatedSong._id },
+      });
+    }
 
     res.status(200).json(updatedSong);
   } catch (error) {
@@ -179,6 +184,7 @@ export const updateSong = async (req, res, next) => {
     next(error);
   }
 };
+
 
 export const deleteSong = async (req, res, next) => {
   try {
@@ -205,12 +211,14 @@ export const deleteSong = async (req, res, next) => {
     next(error);
   }
 };
+
+
 export const createAlbum = async (req, res, next) => {
   try {
-    const { title, artistId, releaseYear } = req.body;
-    const { imageFile } = req.files;
-    if (!imageFile) return res.status(400).json({ message: "Album image is required" });
-    const imageUrl = await uploadToCloudinary(imageFile);
+    const { title, artistId, releaseYear, imageUrl } = req.body;
+
+    if (!title || !artistId || !imageUrl)
+      return res.status(400).json({ message: "Missing fields" });
 
     const album = new Album({
       title,
@@ -221,7 +229,6 @@ export const createAlbum = async (req, res, next) => {
     });
 
     await album.save();
-
     res.status(201).json(album);
   } catch (error) {
     console.log("Error in createAlbum", error);
@@ -229,19 +236,17 @@ export const createAlbum = async (req, res, next) => {
   }
 };
 
+
 export const updateAlbum = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, artistId, releaseYear } = req.body;
+    const { title, artistId, releaseYear, imageUrl } = req.body;
 
     const existingAlbum = await Album.findById(id);
     if (!existingAlbum) return res.status(404).json({ message: "Album not found" });
 
-    let imageUrl = existingAlbum.imageUrl;
-
-    if (req.files?.imageFile) {
+    if (imageUrl && imageUrl !== existingAlbum.imageUrl) {
       await deleteFromCloudinary(existingAlbum.imageUrl);
-      imageUrl = await uploadToCloudinary(req.files.imageFile);
     }
 
     const updatedAlbum = await Album.findByIdAndUpdate(
@@ -250,7 +255,7 @@ export const updateAlbum = async (req, res, next) => {
         title,
         artist: artistId,
         releaseYear,
-        imageUrl,
+        imageUrl: imageUrl || existingAlbum.imageUrl,
         title_normalized: removeVietnameseTones(title.toLowerCase()),
       },
       { new: true }
@@ -262,7 +267,6 @@ export const updateAlbum = async (req, res, next) => {
     next(error);
   }
 };
-
 
 
 

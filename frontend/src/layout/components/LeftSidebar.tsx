@@ -2,31 +2,51 @@ import PlaylistSkeleton from "@/components/skeletons/PlaylistSkeleton";
 import { buttonVariants } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useMusicStore } from "@/stores/useMusicStore";
+import { useArtistStore } from "@/stores/useArtistStore";
 import { SignedIn } from "@clerk/clerk-react";
 import {
   Clock,
   Heart,
   HomeIcon,
-  LibraryIcon,
-  MessageCircle
+  MessageCircle,
+  User2,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const LeftSidebar = () => {
-  const { albums, fetchAlbums, isLoading } = useMusicStore();
+  const { artists, fetchArtists, fetchFollowersCount, isLoading } = useArtistStore();
+  const [followersMap, setFollowersMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    fetchAlbums();
-  }, [fetchAlbums]);
+    const load = async () => {
+      await fetchArtists();
+    };
+    load();
+  }, [fetchArtists]);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const map: Record<string, number> = {};
+      await Promise.all(
+        artists.map(async (artist) => {
+          const count = await fetchFollowersCount(artist._id);
+          map[artist._id] = count;
+        })
+      );
+      setFollowersMap(map);
+    };
+
+    if (artists.length > 0) {
+      fetchCounts();
+    }
+  }, [artists, fetchFollowersCount]);
 
   return (
     <div className="h-full flex flex-col gap-2">
       {/* Navigation menu */}
       <div className="rounded-lg bg-zinc-900 p-4">
         <div className="space-y-2">
-          
           <Link
             to={"/"}
             className={cn(
@@ -39,7 +59,6 @@ const LeftSidebar = () => {
             <HomeIcon className="mr-2 size-5 " />
             <span className="hidden md:inline">Trang chủ</span>
           </Link>
-         
 
           <SignedIn>
             <Link
@@ -84,12 +103,12 @@ const LeftSidebar = () => {
         </div>
       </div>
 
-      {/* Library section */}
+      {/* Library section – hiển thị nghệ sĩ */}
       <div className="flex-1 rounded-lg bg-zinc-900 p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center text-white px-2">
-            <LibraryIcon className="size-5 mr-2" />
-            <span className="hidden md:inline">Album</span>
+            <User2 className="size-5 mr-2" />
+            <span className="hidden md:inline">Top nghệ sĩ</span>
           </div>
         </div>
 
@@ -98,28 +117,30 @@ const LeftSidebar = () => {
             {isLoading ? (
               <PlaylistSkeleton />
             ) : (
-              albums.map((album) => (
-                <Link
-                  to={`/albums/${album._id}`}
-                  key={album._id}
-                  className="p-2 hover:bg-zinc-800 rounded-md flex items-center gap-3 group cursor-pointer"
-                >
-                  <img
-                    src={album.imageUrl}
-                    alt="Playlist img"
-                    className="size-12 rounded-md flex-shrink-0 object-cover"
-                  />
-                  <div className="flex-1 min-w-0 hidden md:block">
-                    <p className="font-medium truncate">{album.title}</p>
-                    <p className="text-sm text-zinc-400 truncate">
-                                  Album • {typeof album.artist === "object" && album.artist !== null
-                      ? album.artist.name
-                      : album.artist}
-                    </p>
-                  </div>
-                </Link>
-              ))
+              [...artists]
+                .sort((a, b) => (b.followersCount ?? 0) - (a.followersCount ?? 0))
+                .slice(0, 10)
+                .map((artist) => (
+                  <Link
+                    to={`/artists/${artist._id}`}
+                    key={artist._id}
+                    className="p-2 hover:bg-zinc-800 rounded-md flex items-center gap-3 group cursor-pointer"
+                  >
+                    <img
+                      src={artist.imageUrl}
+                      alt="Artist"
+                      className="size-12 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 hidden md:block">
+                      <p className="font-medium truncate">{artist.name}</p>
+                      <p className="text-sm text-zinc-400 truncate">
+                        {artist.followersCount ?? 0} followers
+                      </p>
+                    </div>
+                  </Link>
+                ))
             )}
+
           </div>
         </ScrollArea>
       </div>

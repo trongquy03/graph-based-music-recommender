@@ -19,6 +19,7 @@ import ratingRoutes from "./routes/rating.route.js"
 import historyRoutes from "./routes/history.route.js"
 import searchRoutes from "./routes/search.route.js"
 import artistRoutes from "./routes/artist.route.js"
+import cloudinaryRoutes from "./routes/cloudinary.route.js"
 import { connectDB } from "./lib/db.js";
 
 
@@ -62,6 +63,7 @@ app.use("/api/likes", likeRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/history", historyRoutes);
+app.use("/api/cloudinary", cloudinaryRoutes);
 
 
 

@@ -14,6 +14,7 @@ import { Upload, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { axiosInstance } from "@/lib/axios";
 import { useArtistStore } from "@/stores/useArtistStore";
+import { uploadToCloudinarySigned } from "@/lib/uploadToCloudinarySigned";
 
 const AddArtistDialog = () => {
   const [artistDialogOpen, setArtistDialogOpen] = useState(false);
@@ -28,31 +29,34 @@ const AddArtistDialog = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const { fetchArtists } = useArtistStore();
 
-  const handleSubmit = async () => {
-    setIsLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append("name", newArtist.name);
-      formData.append("bio", newArtist.bio);
-      if (imageFile) formData.append("imageFile", imageFile);
-
-      await axiosInstance.post("/admin/artists", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      toast.success("Artist added successfully");
-      setNewArtist({ name: "", bio: "" });
-      setImageFile(null);
-      fetchArtists();
-      setArtistDialogOpen(false);
-    } catch (error: any) {
-      toast.error("Failed to add artist: " + error.message);
-    } finally {
-      setIsLoading(false);
+ const handleSubmit = async () => {
+  setIsLoading(true);
+  try {
+    if (!imageFile) {
+      toast.error("Please upload an image file");
+      return;
     }
-  };
+
+    const imageUrl = await uploadToCloudinarySigned(imageFile, "image");
+
+    await axiosInstance.post("/admin/artists", {
+      name: newArtist.name,
+      bio: newArtist.bio,
+      imageUrl,
+    });
+
+    toast.success("Artist added successfully");
+    setNewArtist({ name: "", bio: "" });
+    setImageFile(null);
+    fetchArtists();
+    setArtistDialogOpen(false);
+  } catch (error: any) {
+    toast.error("Failed to add artist: " + error.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <Dialog open={artistDialogOpen} onOpenChange={setArtistDialogOpen}>

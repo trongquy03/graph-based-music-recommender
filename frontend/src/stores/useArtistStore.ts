@@ -1,15 +1,29 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
 import toast from "react-hot-toast";
-import { Artist } from "@/types";
+import { Artist, Song, Album } from "@/types";
+
+interface ArtistWithFollowInfo extends Artist {
+  isFollowing?: boolean;
+  followersCount?: number;
+  topSongs?: Song[];
+  topAlbums?: Album[];
+}
 
 interface ArtistStore {
-  artists: Artist[];
+  artists: ArtistWithFollowInfo[];
   isLoading: boolean;
   error: string | null;
+
   fetchArtists: () => Promise<void>;
   updateArtist: (id: string, data: Partial<Artist>) => Promise<void>;
   deleteArtist: (id: string) => Promise<void>;
+
+  followArtist: (artistId: string) => Promise<void>;
+  unfollowArtist: (artistId: string) => Promise<void>;
+  isFollowing: (artistId: string) => Promise<boolean>;
+  fetchFollowedArtists: () => Promise<Artist[]>;
+  fetchFollowersCount: (artistId: string) => Promise<number>;
 }
 
 export const useArtistStore = create<ArtistStore>((set, get) => ({
@@ -21,7 +35,23 @@ export const useArtistStore = create<ArtistStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await axiosInstance.get("/artist");
-      set({ artists: res.data });
+      const rawArtists = res.data;
+
+      const enrichedArtists = await Promise.all(
+        rawArtists.map(async (artist: Artist) => {
+          const [isFollowingRes, followersCountRes] = await Promise.all([
+            get().isFollowing(artist._id),
+            get().fetchFollowersCount(artist._id),
+          ]);
+          return {
+            ...artist,
+            isFollowing: isFollowingRes,
+            followersCount: followersCountRes,
+          };
+        })
+      );
+
+      set({ artists: enrichedArtists });
     } catch (err: any) {
       toast.error("Failed to fetch artists");
       set({ error: err.message });
@@ -53,6 +83,76 @@ export const useArtistStore = create<ArtistStore>((set, get) => ({
       toast.success("Artist deleted successfully");
     } catch (err: any) {
       toast.error("Failed to delete artist: " + err.message);
+    }
+  },
+
+  followArtist: async (artistId) => {
+    try {
+      await axiosInstance.post(`/artist/${artistId}/follow`);
+      set((state) => ({
+        artists: state.artists.map((a) =>
+          a._id === artistId
+            ? {
+                ...a,
+                isFollowing: true,
+                followersCount: (a.followersCount ?? 0) + 1,
+              }
+            : a
+        ),
+      }));
+      toast.success("Followed artist");
+    } catch (err: any) {
+      toast.error("Failed to follow: " + err.message);
+    }
+  },
+
+  unfollowArtist: async (artistId) => {
+    try {
+      await axiosInstance.post(`/artist/${artistId}/unfollow`);
+      set((state) => ({
+        artists: state.artists.map((a) =>
+          a._id === artistId
+            ? {
+                ...a,
+                isFollowing: false,
+                followersCount: Math.max(0, (a.followersCount ?? 1) - 1),
+              }
+            : a
+        ),
+      }));
+      toast.success("Unfollowed artist");
+    } catch (err: any) {
+      toast.error("Failed to unfollow: " + err.message);
+    }
+  },
+
+  isFollowing: async (artistId) => {
+    try {
+      const res = await axiosInstance.get(`/artist/${artistId}/is-following`);
+      return res.data.isFollowing;
+    } catch (err: any) {
+      console.error("Failed to check follow status", err);
+      return false;
+    }
+  },
+
+  fetchFollowedArtists: async () => {
+    try {
+      const res = await axiosInstance.get(`/artist/me/following`);
+      return res.data.artists as Artist[];
+    } catch (err: any) {
+      toast.error("Failed to fetch followed artists");
+      return [];
+    }
+  },
+
+  fetchFollowersCount: async (artistId) => {
+    try {
+      const res = await axiosInstance.get(`/artist/${artistId}/followers/count`);
+      return res.data.followers;
+    } catch (err: any) {
+      console.error("Failed to fetch followers count:", err);
+      return 0;
     }
   },
 }));

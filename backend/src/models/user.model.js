@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Artist } from "./artist.model.js";
 
 const userSchema = new mongoose.Schema({
     fullName: {
@@ -9,6 +10,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    followedArtists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Artist" }],
     clerkId: {
         type: String,
         required: true,

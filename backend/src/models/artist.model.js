@@ -25,6 +25,10 @@ const artistSchema = new mongoose.Schema({
     },
     albums: [{ type: mongoose.Schema.Types.ObjectId, ref: "Album" }],
     songs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
+    followers: [{ 
+    type: String, // Clerk userId
+    ref: "User",
+  }],
 }, { timestamps: true });
 
 artistSchema.post("findOneAndDelete", async function (doc) {
