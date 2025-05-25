@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
-import { Song, Album } from "@/types";
+import { Song, Album, Artist } from "@/types";
 
 interface SearchStore {
   query: string;
   results: {
     songs: Song[];
     albums: Album[];
+    artists: Artist[];
   };
   loading: boolean;
   setQuery: (q: string) => void;
@@ -16,12 +17,12 @@ interface SearchStore {
 
 export const useSearchStore = create<SearchStore>((set) => ({
   query: "",
-  results: { songs: [], albums: [] },
+  results: { songs: [], albums: [], artists: [] },
   loading: false,
 
   setQuery: (q) => set({ query: q }),
 
-  clear: () => set({ results: { songs: [], albums: [] }, query: "" }),
+  clear: () => set({ results: { songs: [], albums: [], artists: [] }, query: "" }),
 
   search: async (q) => {
     if (!q || q.trim() === "") return;

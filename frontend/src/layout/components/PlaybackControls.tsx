@@ -1,6 +1,7 @@
 import RatingSelector from "@/components/RatingSelector";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { useNavigate } from "react-router-dom";
 import LikeButton from "@/pages/home/components/LikeButton";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
@@ -44,6 +45,7 @@ export const PlaybackControls = () => {
     isLooping,
     isShuffling,
   } = usePlayerStore();
+  const navigate = useNavigate();
   const { isSignedIn } = useAuth();
   const { likeCounts, fetchLikeCountBySongId, likedSongIds } = useMusicStore();
   const {
@@ -117,28 +119,47 @@ export const PlaybackControls = () => {
     <footer className="h-20 sm:h-24 bg-zinc-900 border-t border-zinc-800 px-4">
       <div className="flex justify-between items-center h-full max-w-[1800px] mx-auto">
         <div className="hidden sm:flex items-center gap-4 min-w-[180px] w-[30%]">
-          {currentSong && (
-            <>
-              <img
-                src={currentSong.imageUrl}
-                alt={currentSong.title}
-                className="w-14 h-14 object-cover rounded-md"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate hover:underline cursor-pointer">
-                  {currentSong.title}
-                </div>
-                <div className="text-sm text-zinc-400 truncate hover:underline cursor-pointer">
-                {typeof currentSong.artist === "object" && currentSong.artist !== null
-                  ? currentSong.artist.name
-                  : currentSong.artist}
-              </div>
-              </div>
-              
+  {currentSong && typeof currentSong.artist === "object" && currentSong.artist !== null ? (
+    <>
+      {/* Ảnh - click được */}
+      <img
+        src={currentSong.imageUrl}
+        alt={currentSong.title}
+        onClick={() => navigate(`/artists/${currentSong.artist._id}`)}
+        className="w-14 h-14 object-cover rounded-md cursor-pointer hover:opacity-80 transition"
+      />
 
-            </>
-          )}
+      <div className="flex-1 min-w-0">
+        {/* Tên bài hát - ❌ không click */}
+        <div className="font-medium truncate text-white">
+          {currentSong.title}
         </div>
+
+        {/* Tên nghệ sĩ - ✅ có onClick */}
+        <div
+          className="text-sm text-zinc-400 truncate hover:underline cursor-pointer"
+          onClick={() => navigate(`/artists/${currentSong.artist._id}`)}
+        >
+          {currentSong.artist.name}
+        </div>
+      </div>
+    </>
+  ) : (
+    // Trường hợp không có object artist
+    <>
+      <img
+        src={currentSong?.imageUrl}
+        alt={currentSong?.title}
+        className="w-14 h-14 object-cover rounded-md"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="font-medium truncate text-white">{currentSong?.title}</div>
+        <div className="text-sm text-zinc-400 truncate">{currentSong?.artist}</div>
+      </div>
+    </>
+  )}
+</div>
+
 
         <div className="flex flex-col items-center gap-2 flex-1 max-w-full sm:max-w-[45%]">
           <div className="flex items-center gap-4 sm:gap-6">

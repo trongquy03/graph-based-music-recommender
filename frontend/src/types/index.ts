@@ -3,6 +3,8 @@ export interface Artist {
   name: string;
   bio: string;
   imageUrl: string;
+  followersCount?: number; 
+  isFollowing?: boolean;
 }
 
 export interface Song {

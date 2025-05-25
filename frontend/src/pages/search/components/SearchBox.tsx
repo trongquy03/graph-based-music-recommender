@@ -76,13 +76,12 @@ export const SearchBox = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-      
       clear();
     }
   };
 
   const dropdown =
-    (results.songs.length > 0 || results.albums.length > 0) &&
+    (results.songs.length > 0 || results.artists?.length > 0) &&
     ReactDOM.createPortal(
       <div
         ref={dropdownRef}
@@ -99,7 +98,7 @@ export const SearchBox = () => {
           <div>
             <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 mb-2">🎵 Gợi ý bài hát</p>
             <div className="space-y-1">
-              {results.songs.slice(0, 6).map((song) => {
+              {results.songs.slice(0, 4).map((song) => {
                 const isCurrent = currentSong?._id === song._id;
                 return (
                   <div
@@ -125,7 +124,9 @@ export const SearchBox = () => {
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <p className="text-white font-semibold truncate">{song.title}</p>
-                      <p className="text-xs text-zinc-500 truncate">{typeof song.artist === "object" ? song.artist.name : song.artist}</p>
+                      <p className="text-xs text-zinc-500 truncate">
+                        {typeof song.artist === "object" ? song.artist.name : song.artist}
+                      </p>
                     </div>
                     {isSignedIn && (
                       <div
@@ -142,29 +143,27 @@ export const SearchBox = () => {
           </div>
         )}
 
-        {results.albums.length > 0 && (
+        {results.artists?.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 mb-2">💿 Album</p>
+            <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 mb-2">🎤 Nghệ sĩ</p>
             <div className="space-y-1">
-              {results.albums.map((album) => (
+              {results.artists.slice(0, 2).map((artist) => (
                 <div
-                  key={album._id}
+                  key={artist._id}
                   className="flex items-center gap-3 p-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer"
                   onClick={() => {
-                    navigate(`/albums/${album._id}`);
+                    navigate(`/artists/${artist._id}`);
+                    clear();
                   }}
                 >
                   <img
-                    src={album.imageUrl}
-                    alt={album.title}
-                    className="w-10 h-10 object-cover rounded"
+                    src={artist.imageUrl}
+                    alt={artist.name}
+                    className="w-10 h-10 object-cover rounded-full"
                   />
                   <div className="flex-1 overflow-hidden">
-                    <p className="text-white font-semibold truncate">{album.title}</p>
-                    <p className="text-xs text-zinc-500 truncate">{typeof album.artist === "object" && album.artist !== null
-                          ? album.artist.name
-                          : album.artist}
-                        </p>
+                    <p className="text-white font-semibold truncate">{artist.name}</p>
+                    <p className="text-xs text-zinc-500 truncate">Nghệ sĩ</p>
                   </div>
                 </div>
               ))}
@@ -185,7 +184,7 @@ export const SearchBox = () => {
 
         <input
           ref={inputRef}
-          placeholder="Tìm bài hát hoặc album..."
+          placeholder="Tìm bài hát hoặc nghệ sĩ..."
           className="w-full pl-10 pr-8 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -207,3 +206,5 @@ export const SearchBox = () => {
     </>
   );
 };
+
+export default SearchBox;
