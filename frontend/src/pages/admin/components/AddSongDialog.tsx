@@ -18,12 +18,15 @@ import toast from "react-hot-toast";
 import SearchableSelectDialog from "./SearchableSelect";
 import AudioFileInput from "./AudioFileInput";
 import { uploadToCloudinarySigned } from "@/lib/uploadToCloudinarySigned";
+import { GenreEnum, MoodEnum } from "@/lib/music";
 
 interface NewSong {
   title: string;
   artist: string;
   album: string;
   duration: string;
+  genre: GenreEnum;
+  mood: MoodEnum;
 }
 
 const AddSongDialog = () => {
@@ -38,6 +41,8 @@ const AddSongDialog = () => {
     artist: "",
     album: "",
     duration: "0",
+    genre: GenreEnum.None,
+    mood: MoodEnum.None,
   });
 
   const [files, setFiles] = useState<{ audio: File | null; image: File | null }>({
@@ -51,44 +56,52 @@ const AddSongDialog = () => {
     fetchArtists();
   }, [fetchArtists]);
 
-const handleSubmit = async () => {
-  setIsLoading(true);
+  const handleSubmit = async () => {
+    setIsLoading(true);
 
-  try {
-    if (!files.audio || !files.image) {
-      toast.error("Please upload both audio and image files");
-      return;
+    try {
+      if (!files.audio || !files.image) {
+        toast.error("Please upload both audio and image files");
+        return;
+      }
+      if (newSong.genre === GenreEnum.None) {
+        toast.error("Please select a genre for the song");
+        return;
+      }
+
+
+      const audioUrl = await uploadToCloudinarySigned(files.audio, "video");
+      const imageUrl = await uploadToCloudinarySigned(files.image, "image");
+
+      await axiosInstance.post("/admin/songs", {
+          title: newSong.title,
+          artistId: newSong.artist,
+          albumId: newSong.album === "none" ? null : newSong.album,
+          duration: newSong.duration,
+          audioUrl,
+          imageUrl,
+          genre: newSong.genre, 
+          mood: newSong.mood === MoodEnum.None ? undefined : newSong.mood,
+        });
+
+
+      toast.success("Song added successfully");
+      setNewSong({
+        title: "",
+        artist: "",
+        album: "",
+        duration: "0",
+        genre: GenreEnum.Pop,
+        mood: MoodEnum.Chill,
+      });
+      setFiles({ audio: null, image: null });
+      setSongDialogOpen(false);
+    } catch (error: any) {
+      toast.error("Failed to add song: " + error.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Upload file lên Cloudinary
-    const audioUrl = await uploadToCloudinarySigned(files.audio, "video");
-    console.log("Uploading audio file:", files.audio);
-
-    const imageUrl = await uploadToCloudinarySigned(files.image, "image");
-    console.log("Uploading image file:", files.image);
-
-
-    // Gửi dữ liệu đến backend
-    await axiosInstance.post("/admin/songs", {
-      title: newSong.title,
-      artistId: newSong.artist,
-      albumId: newSong.album === "none" ? null : newSong.album,
-      duration: newSong.duration,
-      audioUrl,
-      imageUrl,
-    });
-
-    toast.success("Song added successfully");
-    setNewSong({ title: "", artist: "", album: "", duration: "0" });
-    setFiles({ audio: null, image: null });
-    setSongDialogOpen(false);
-  } catch (error: any) {
-    toast.error("Failed to add song: " + error.message);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   return (
     <Dialog open={songDialogOpen} onOpenChange={setSongDialogOpen}>
@@ -169,6 +182,46 @@ const handleSubmit = async () => {
               }))}
               placeholder="Select artist"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Genre</label>
+            <select
+              value={newSong.genre}
+              onChange={(e) =>
+                setNewSong((prev) => ({ ...prev, genre: e.target.value as GenreEnum }))
+              }
+              className="bg-zinc-800 border-zinc-700 rounded-md px-3 py-2 text-sm w-full"
+            >
+              <option value="none" disabled>Select genre...</option>
+              {Object.values(GenreEnum)
+                .filter((g) => g !== GenreEnum.None)
+                .map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Mood</label>
+            <select
+          value={newSong.mood}
+          onChange={(e) =>
+            setNewSong((prev) => ({ ...prev, mood: e.target.value as MoodEnum }))
+          }
+          className="bg-zinc-800 border-zinc-700 rounded-md px-3 py-2 text-sm w-full"
+        >
+          <option value="none">No mood</option>
+          {Object.values(MoodEnum)
+            .filter((m) => m !== MoodEnum.None)
+            .map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+        </select>
           </div>
 
           <div className="space-y-2">

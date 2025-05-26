@@ -33,6 +33,20 @@ const songSchema = new mongoose.Schema({
   },
   title_normalized: String,
   artist_normalized: String,
+   mood: {
+    type: String,
+    enum: ["happy", "sad", "chill", "motivational"],
+    default: "chill"
+  },
+  genre: {
+    type: String,
+    enum: ["pop", "rock", "hiphop", "ballad", "edm", "rnb", "country", "lofi", "movie"],
+    required: true
+  },
+  lyricsUrl: {
+    type: String,
+    default: "",
+  },
   featured: { type: Boolean, default: false },
 }, { timestamps: true });
 

@@ -80,7 +80,6 @@ const ArtistDetailPage = () => {
       )}
     </Button>
   </div>
-              <p className="text-sm text-white/70 mt-1">{followers.toLocaleString()} người quan tâm</p>
               <div className="mt-2">
                 <FollowButton artistId={artist._id} />
               </div>

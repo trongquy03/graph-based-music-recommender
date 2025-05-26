@@ -96,9 +96,9 @@ export const deleteArtist = async (req, res, next) => {
 
 export const createSong = async (req, res, next) => {
   try {
-    const { title, artistId, albumId, duration, audioUrl, imageUrl } = req.body;
+    const { title, artistId, albumId, duration, audioUrl, imageUrl, genre, mood } = req.body;
 
-    if (!title || !artistId || !audioUrl || !imageUrl) {
+    if (!title || !artistId || !audioUrl || !imageUrl || !genre || !mood) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -109,6 +109,8 @@ export const createSong = async (req, res, next) => {
       imageUrl,
       duration,
       albumId: albumId || null,
+      genre,
+      mood,
       title_normalized: removeVietnameseTones(title.toLowerCase()),
     });
 
@@ -131,7 +133,7 @@ export const createSong = async (req, res, next) => {
 export const updateSong = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, artistId, albumId, duration, audioUrl, imageUrl } = req.body;
+    const { title, artistId, albumId, duration, audioUrl, imageUrl, genre, mood } = req.body;
 
     const existingSong = await Song.findById(id);
     if (!existingSong) return res.status(404).json({ message: "Song not found" });
@@ -163,6 +165,8 @@ export const updateSong = async (req, res, next) => {
         duration,
         audioUrl: audioUrl || existingSong.audioUrl,
         imageUrl: imageUrl || existingSong.imageUrl,
+        genre: genre || existingSong.genre,
+        mood: mood || existingSong.mood,
         title_normalized: removeVietnameseTones(title.toLowerCase()),
       },
       { new: true }
@@ -184,6 +188,7 @@ export const updateSong = async (req, res, next) => {
     next(error);
   }
 };
+
 
 
 export const deleteSong = async (req, res, next) => {

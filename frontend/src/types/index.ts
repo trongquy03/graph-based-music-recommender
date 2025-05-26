@@ -11,6 +11,8 @@ export interface Song {
     _id: string;
     title: string;
     artist: Artist;
+    mood?: "happy" | "sad" | "chill" | "motivational";
+    genre: "pop" | "rock" | "hiphop" | "ballad" | "edm" | "rnb" | "country" | "lofi" | "movie";
     albumId: string | null;
     imageUrl: string;
     audioUrl: string;

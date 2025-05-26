@@ -10,7 +10,6 @@ import { useAuth } from "@clerk/clerk-react";
 import clsx from "clsx";
 import {
   Laptop2,
-  ListMusic,
   Mic2,
   Pause,
   Play,
@@ -47,7 +46,7 @@ export const PlaybackControls = () => {
   } = usePlayerStore();
   const navigate = useNavigate();
   const { isSignedIn } = useAuth();
-  const { likeCounts, fetchLikeCountBySongId, likedSongIds } = useMusicStore();
+  const { likeCounts, fetchLikeCountBySongId } = useMusicStore();
   const {
     getUserRatingForSong,
     getAverageRatingForSong,
@@ -154,11 +153,13 @@ export const PlaybackControls = () => {
       />
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate text-white">{currentSong?.title}</div>
-        <div className="text-sm text-zinc-400 truncate">{currentSong?.artist}</div>
+        <div className="text-sm text-zinc-400 truncate">{typeof currentSong?.artist === "object" && currentSong.artist
+              ? currentSong.artist.name
+             : currentSong?.artist}</div>
+            </div>
+            </>
+           )}
       </div>
-    </>
-  )}
-</div>
 
 
         <div className="flex flex-col items-center gap-2 flex-1 max-w-full sm:max-w-[45%]">
