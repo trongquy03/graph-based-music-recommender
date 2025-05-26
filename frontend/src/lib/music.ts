@@ -15,8 +15,8 @@ export enum GenreEnum {
 
 export enum MoodEnum {
   None = "none",
-  Happy = "Vui",
-  Sad = "Buồn",
+  Happy = "happy",
+  Sad = "sad",
   Chill = "Chill",
-  Motivational = "Động lực",
+  Motivational = "motivational",
 }

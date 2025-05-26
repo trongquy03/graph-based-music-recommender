@@ -7,6 +7,7 @@ import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { useRatingStore } from "@/stores/useRatingStore";
 import { useAuth } from "@clerk/clerk-react";
+import LyricKaraoke from "@/components/LyricKaraoke";
 import clsx from "clsx";
 import {
   Laptop2,
@@ -44,9 +45,11 @@ export const PlaybackControls = () => {
     isLooping,
     isShuffling,
   } = usePlayerStore();
+  const [showLyrics, setShowLyrics] = useState(false);
   const navigate = useNavigate();
   const { isSignedIn } = useAuth();
   const { likeCounts, fetchLikeCountBySongId } = useMusicStore();
+  
   const {
     getUserRatingForSong,
     getAverageRatingForSong,
@@ -64,6 +67,9 @@ export const PlaybackControls = () => {
   useEffect(() => {
     if (currentSong) {
       fetchLikeCountBySongId(currentSong._id);
+      console.log("Lyrics URL:", currentSong?.lyricsUrl);
+      console.log("currentSong:", currentSong);
+
     }
   }, [currentSong]);
 
@@ -115,6 +121,15 @@ export const PlaybackControls = () => {
   const avgRating = currentSong ? getAverageRatingForSong(currentSong._id) : { average: 0, totalRatings: 0 };
 
   return (
+    <div className="relative">
+      {showLyrics && currentSong?.lyricsUrl && (
+  <div className="fixed top-0 left-0 right-0 bottom-20 z-50 bg-black/95 flex flex-col">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <LyricKaraoke audioRef={audioRef} lyricsUrl={currentSong.lyricsUrl} />
+    </div>
+  </div>
+)}
+
     <footer className="h-20 sm:h-24 bg-zinc-900 border-t border-zinc-800 px-4">
       <div className="flex justify-between items-center h-full max-w-[1800px] mx-auto">
         <div className="hidden sm:flex items-center gap-4 min-w-[180px] w-[30%]">
@@ -285,9 +300,18 @@ export const PlaybackControls = () => {
 
 
 
-          <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
-            <Mic2 className="h-4 w-4" />
-          </Button>
+          <Button
+  size="icon"
+  variant="ghost"
+  onClick={() => setShowLyrics(!showLyrics)}
+  className={clsx(
+    "cursor-pointer transition-colors",
+    showLyrics ? "text-emerald-400" : "text-zinc-400 hover:text-white"
+  )}
+>
+  <Mic2 className="h-4 w-4" />
+</Button>
+
 
           {/* <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
             <ListMusic className="h-4 w-4" />
@@ -323,7 +347,10 @@ export const PlaybackControls = () => {
         </div>
       </div>
     </footer>
+</div>
   );
 };
+
+
 
 export default PlaybackControls;

@@ -3,6 +3,7 @@ import {Album} from "../models/album.model.js"
 import {Artist} from "../models/artist.model.js"
 import cloudinary from "../lib/cloudinary.js"
 import { removeVietnameseTones } from "../lib/removeDiacritics.js";
+import { generateLyricsFromCloudinaryUrl } from "../lib/lyrics.js";
 
 //helper function for cloudinary uploads
 const uploadToCloudinary = async (file) => {
@@ -98,9 +99,11 @@ export const createSong = async (req, res, next) => {
   try {
     const { title, artistId, albumId, duration, audioUrl, imageUrl, genre, mood } = req.body;
 
-    if (!title || !artistId || !audioUrl || !imageUrl || !genre || !mood) {
+    if (!title || !artistId || !audioUrl || !imageUrl || !genre) {
       return res.status(400).json({ message: "Missing required fields" });
     }
+
+    const lyricsUrl = "";
 
     const song = new Song({
       title,
@@ -111,6 +114,7 @@ export const createSong = async (req, res, next) => {
       albumId: albumId || null,
       genre,
       mood,
+      lyricsUrl,
       title_normalized: removeVietnameseTones(title.toLowerCase()),
     });
 
@@ -128,6 +132,7 @@ export const createSong = async (req, res, next) => {
     next(error);
   }
 };
+
 
 
 export const updateSong = async (req, res, next) => {
@@ -293,7 +298,68 @@ export const deleteAlbum = async (req, res, next) => {
   }
 };
 
+export const generateLyricsForSong = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const song = await Song.findById(id);
+
+    if (!song || !song.audioUrl) {
+      return res.status(404).json({ message: "Song not found or missing audioUrl" });
+    }
+
+    const lyricsUrl = await generateLyricsFromCloudinaryUrl(song.audioUrl);
+
+    if (!lyricsUrl) {
+      return res.status(500).json({ message: "Failed to generate lyrics" });
+    }
+
+    song.lyricsUrl = lyricsUrl;
+    await song.save();
+
+    res.status(200).json({ lyricsUrl });
+  } catch (error) {
+    console.error("Error generating lyrics:", error);
+    next(error);
+  }
+};
+
+export const uploadLyricsManually = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { lyricsText } = req.body;
+
+    if (!lyricsText || lyricsText.length < 10) {
+      return res.status(400).json({ message: "Lyrics text is too short or missing." });
+    }
+
+    const song = await Song.findById(id);
+    if (!song) return res.status(404).json({ message: "Song not found" });
+
+    // Tạo file tạm .srt
+    const tempDir = path.join(process.cwd(), "temp");
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+
+    const filename = `lyrics-${uuidv4()}.srt`;
+    const filepath = path.join(tempDir, filename);
+    fs.writeFileSync(filepath, lyricsText);
+
+    // Upload lên Cloudinary
+    const cloudUrl = await uploadRawToCloudinary(filepath);
+
+    // Cập nhật bài hát
+    song.lyricsUrl = cloudUrl;
+    await song.save();
+
+    fs.unlinkSync(filepath); // Xoá file tạm
+
+    res.status(200).json({ lyricsUrl: cloudUrl });
+  } catch (err) {
+    console.error("Error in manual lyrics upload:", err);
+    next(err);
+  }
+};
 
 export const checkAdmin = async (req, res, next) => {
     res.status(200).json({admin: true});
 }
+

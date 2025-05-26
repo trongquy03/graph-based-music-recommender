@@ -1,6 +1,6 @@
 export const uploadToCloudinarySigned = async (
   file: File,
-  resourceType: "image" | "video" | "auto" = "auto"
+  resourceType: "image" | "video" | "auto" | "raw" = "auto"
 ): Promise<string> => {
   try {
     const sigRes = await fetch("/api/cloudinary/signature");

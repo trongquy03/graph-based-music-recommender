@@ -14,6 +14,7 @@ export interface Song {
     mood?: "happy" | "sad" | "chill" | "motivational";
     genre: "pop" | "rock" | "hiphop" | "ballad" | "edm" | "rnb" | "country" | "lofi" | "movie";
     albumId: string | null;
+    lyricsUrl?: string;
     imageUrl: string;
     audioUrl: string;
     duration: number;
