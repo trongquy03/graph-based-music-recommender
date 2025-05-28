@@ -1,5 +1,6 @@
 import { Rating } from "../models/rating.model.js";
 import mongoose from "mongoose";
+import { neo4jSession } from "../lib/db.js";
 
 // Get all ratings by current user
 export const getRatings = async (req, res, next) => {
@@ -31,6 +32,13 @@ export const rateSong = async (req, res) => {
   try {
     if (rating === 0) {
       await Rating.findOneAndDelete({ user: userId, song: songId });
+
+       // Xoá quan hệ RATED trong Neo4j
+      await neo4jSession.run(
+        `MATCH (u:User {id: $userId})-[r:RATED]->(s:Song {id: $songId}) DELETE r`,
+        { userId, songId }
+      );
+
       return res.status(200).json({ message: "Rating cleared." });
     }
 
@@ -43,11 +51,30 @@ export const rateSong = async (req, res) => {
     if (existing) {
       existing.rating = rating;
       await existing.save();
+
+       // Cập nhật quan hệ RATED
+      await neo4jSession.run(
+        `MERGE (u:User {id: $userId})
+         MERGE (s:Song {id: $songId})
+         MERGE (u)-[r:RATED]->(s)
+         SET r.rating = $rating`,
+        { userId, songId, rating }
+      );
+
       return res.status(200).json({ message: "Rating updated." });
     }
 
     const newRating = new Rating({ user: userId, song: songId, rating });
     await newRating.save();
+
+    // Tạo quan hệ RATED mới trong Neo4j
+    await neo4jSession.run(
+      `MERGE (u:User {id: $userId})
+       MERGE (s:Song {id: $songId})
+       MERGE (u)-[r:RATED]->(s)
+       SET r.rating = $rating`,
+      { userId, songId, rating }
+    );
 
     res.status(201).json({ message: "Song rated successfully." });
   } catch (err) {
@@ -97,6 +124,11 @@ export const deleteRating = async (req, res) => {
 
   try {
     await Rating.findOneAndDelete({ user: userId, song: songId });
+
+     await neo4jSession.run(
+      `MATCH (u:User {id: $userId})-[r:RATED]->(s:Song {id: $songId}) DELETE r`,
+      { userId, songId }
+    );
     res.status(200).json({ message: "Rating deleted successfully!" });
   } catch (err) {
     res.status(500).json({ error: err.message });

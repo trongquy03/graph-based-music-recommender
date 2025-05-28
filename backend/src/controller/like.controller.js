@@ -1,5 +1,6 @@
 
 import { Like } from "../models/like.model.js";
+import { neo4jSession } from "../lib/db.js";
 
 export const getLikes = async (req, res, next) => {
     try {
@@ -29,6 +30,12 @@ export const likeSong = async (req, res) => {
 
         const like = new Like({ user: userId, song: songId });
         await like.save();
+            await neo4jSession.run(
+            `MERGE (u:User {id: $userId})
+            MERGE (s:Song {id: $songId})
+            MERGE (u)-[:LIKES]->(s)`,
+            { userId, songId }
+        );
 
         res.status(201).json({ message: "Song liked successfully!" });
     } catch (err) {
@@ -42,6 +49,12 @@ export const unlikeSong = async (req, res) => {
 
     try {
         await Like.findOneAndDelete({ user: userId, song: songId });
+
+        await neo4jSession.run(
+            `MATCH (u:User {id: $userId})-[r:LIKES]->(s:Song {id: $songId})
+            DELETE r`,
+            { userId, songId }
+        )
         res.status(200).json({ message: "Song unliked successfully!" });
     } catch (err) {
         res.status(500).json({ error: err.message });

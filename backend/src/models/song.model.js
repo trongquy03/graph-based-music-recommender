@@ -40,7 +40,7 @@ const songSchema = new mongoose.Schema({
   },
   genre: {
     type: String,
-    enum: ["pop", "rock", "hiphop", "ballad", "edm", "rnb", "country", "lofi", "movie"],
+    enum: ["pop", "rock", "hiphop", "ballad", "rap", "edm", "rnb", "country", "lofi", "movie"],
     required: true
   },
   lyricsUrl: {

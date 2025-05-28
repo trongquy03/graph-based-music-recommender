@@ -17,7 +17,7 @@ export const getSearchResults = async (req, res) => {
     // Lấy full thông tin artist để frontend render
     const matchedArtists = await Artist.find({
       name_normalized: searchRegex,
-    }).select("_id name imageUrl"); // 👈 giữ nguyên image và name để hiển thị
+    }).select("_id name imageUrl"); // 
 
     const artistIds = matchedArtists.map((artist) => artist._id);
 
@@ -43,7 +43,7 @@ export const getSearchResults = async (req, res) => {
         .populate("artist", "name"),
     ]);
 
-    return res.json({ songs, albums, artists: matchedArtists }); // 👈 trả thêm artists
+    return res.json({ songs, albums, artists: matchedArtists }); 
   } catch (err) {
     console.error("Search API error:", err);
     return res.status(500).json({ message: "Search failed" });

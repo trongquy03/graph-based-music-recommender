@@ -2,6 +2,7 @@ import {Song} from "../models/song.model.js";
 import {Album} from "../models/album.model.js"
 import {Artist} from "../models/artist.model.js"
 import cloudinary from "../lib/cloudinary.js"
+import { neo4jSession } from "../lib/db.js";
 import { removeVietnameseTones } from "../lib/removeDiacritics.js";
 import { generateLyricsFromCloudinaryUrl } from "../lib/lyrics.js";
 
@@ -36,14 +37,21 @@ export const createArtist = async (req, res, next) => {
     });
 
     await artist.save();
+
+    await neo4jSession.run(
+      `MERGE (a:Artist {id: $id, name: $name})`,
+      {
+        id: artist._id.toString(),
+        name: artist.name,
+      }
+    );
+
     res.status(201).json(artist);
   } catch (err) {
     console.error("Error creating artist:", err);
     next(err);
   }
 };
-
-
 
 export const updateArtist = async (req, res, next) => {
   try {
@@ -53,7 +61,6 @@ export const updateArtist = async (req, res, next) => {
     const existingArtist = await Artist.findById(id);
     if (!existingArtist) return res.status(404).json({ message: "Artist not found" });
 
-    // Nếu ảnh đổi → xóa ảnh cũ
     if (imageUrl && imageUrl !== existingArtist.imageUrl) {
       await deleteFromCloudinary(existingArtist.imageUrl);
     }
@@ -69,13 +76,21 @@ export const updateArtist = async (req, res, next) => {
       { new: true }
     );
 
+    await neo4jSession.run(
+      `MATCH (a:Artist {id: $id})
+       SET a.name = $name`,
+      {
+        id,
+        name,
+      }
+    );
+
     res.status(200).json(updatedArtist);
   } catch (err) {
     console.error("Error updating artist:", err);
     next(err);
   }
 };
-
 
 export const deleteArtist = async (req, res, next) => {
   try {
@@ -84,8 +99,12 @@ export const deleteArtist = async (req, res, next) => {
     const artist = await Artist.findById(id);
     if (!artist) return res.status(404).json({ message: "Artist not found" });
 
-    //  middleware để xoá album, song, rating, like, history
     await Artist.findOneAndDelete({ _id: id });
+
+    await neo4jSession.run(
+      `MATCH (a:Artist {id: $id}) DETACH DELETE a`,
+      { id }
+    );
 
     res.status(200).json({ message: "Artist deleted successfully" });
   } catch (err) {
@@ -93,7 +112,6 @@ export const deleteArtist = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const createSong = async (req, res, next) => {
   try {
@@ -126,14 +144,30 @@ export const createSong = async (req, res, next) => {
       });
     }
 
+    await neo4jSession.run(
+      `MATCH (a:Artist {id: $artistId})
+       MERGE (s:Song {
+         id: $id,
+         title: $title,
+         genre: $genre,
+         mood: $mood
+       })
+       MERGE (a)-[:By]->(s)`,
+      {
+        id: song._id.toString(),
+        title: song.title,
+        genre: song.genre,
+        mood: song.mood,
+        artistId,
+      }
+    );
+
     res.status(201).json(song);
   } catch (error) {
     console.error("Error in createSong:", error);
     next(error);
   }
 };
-
-
 
 export const updateSong = async (req, res, next) => {
   try {
@@ -151,7 +185,6 @@ export const updateSong = async (req, res, next) => {
       await deleteFromCloudinary(existingSong.audioUrl);
     }
 
-    // Nếu đổi album → gỡ khỏi album cũ
     if (
       existingSong.albumId &&
       (!albumId || existingSong.albumId.toString() !== albumId)
@@ -177,7 +210,6 @@ export const updateSong = async (req, res, next) => {
       { new: true }
     );
 
-    // Nếu thêm vào album mới
     if (
       albumId &&
       (!existingSong.albumId || existingSong.albumId.toString() !== albumId)
@@ -187,14 +219,23 @@ export const updateSong = async (req, res, next) => {
       });
     }
 
+    await neo4jSession.run(
+      `MATCH (s:Song {id: $id})
+       SET s.title = $title, s.genre = $genre, s.mood = $mood`,
+      {
+        id,
+        title,
+        genre,
+        mood,
+      }
+    );
+
     res.status(200).json(updatedSong);
   } catch (error) {
     console.log("Error in updateSong", error);
     next(error);
   }
 };
-
-
 
 export const deleteSong = async (req, res, next) => {
   try {
@@ -205,15 +246,18 @@ export const deleteSong = async (req, res, next) => {
       return res.status(404).json({ message: "Song not found" });
     }
 
-    // Nếu bài hát thuộc album, cập nhật album
     if (song.albumId) {
       await Album.findByIdAndUpdate(song.albumId, {
         $pull: { songs: song._id },
       });
     }
 
-    //  findOneAndDelete để trigger middleware
     await Song.findOneAndDelete({ _id: id });
+
+    await neo4jSession.run(
+      `MATCH (s:Song {id: $id}) DETACH DELETE s`,
+      { id }
+    );
 
     res.status(200).json({ message: "Song deleted successfully" });
   } catch (error) {
@@ -221,7 +265,6 @@ export const deleteSong = async (req, res, next) => {
     next(error);
   }
 };
-
 
 export const createAlbum = async (req, res, next) => {
   try {
@@ -239,13 +282,29 @@ export const createAlbum = async (req, res, next) => {
     });
 
     await album.save();
+
+    await neo4jSession.run(
+      `MATCH (a:Artist {id: $artistId})
+       MERGE (al:Album {
+         id: $id,
+         title: $title,
+         releaseYear: $year
+       })
+       MERGE (a)-[:RELEASED]->(al)`,
+      {
+        id: album._id.toString(),
+        title: album.title,
+        year: album.releaseYear,
+        artistId,
+      }
+    );
+
     res.status(201).json(album);
   } catch (error) {
     console.log("Error in createAlbum", error);
     next(error);
   }
 };
-
 
 export const updateAlbum = async (req, res, next) => {
   try {
@@ -271,14 +330,22 @@ export const updateAlbum = async (req, res, next) => {
       { new: true }
     );
 
+    await neo4jSession.run(
+      `MATCH (al:Album {id: $id})
+       SET al.title = $title, al.releaseYear = $year`,
+      {
+        id,
+        title,
+        year: releaseYear,
+      }
+    );
+
     res.status(200).json(updatedAlbum);
   } catch (error) {
     console.log("Error in updateAlbum", error);
     next(error);
   }
 };
-
-
 
 export const deleteAlbum = async (req, res, next) => {
   try {
@@ -291,12 +358,18 @@ export const deleteAlbum = async (req, res, next) => {
 
     await Album.findOneAndDelete({ _id: id });
 
+    await neo4jSession.run(
+      `MATCH (al:Album {id: $id}) DETACH DELETE al`,
+      { id }
+    );
+
     res.status(200).json({ message: "Album deleted successfully" });
   } catch (error) {
     console.log("Error in deleteAlbum", error);
     next(error);
   }
 };
+
 
 export const generateLyricsForSong = async (req, res, next) => {
   try {

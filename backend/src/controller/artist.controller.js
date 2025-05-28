@@ -1,5 +1,6 @@
 import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
+import { neo4jSession } from "../lib/db.js";
 
 // Get all artists
 export const getAllArtists = async (req, res, next) => {
@@ -45,6 +46,13 @@ export const followArtist = async (req, res) => {
       { $addToSet: { followedArtists: artist._id } }
     );
 
+    await neo4jSession.run(
+      `MERGE (u:User {id: $userId})
+       MERGE (a:Artist {id: $artistId})
+       MERGE (u)-[:FOLLOWS]->(a)`,
+      { userId, artistId }
+    );
+
     return res.status(200).json({ message: "Followed artist", artist });
   } catch (error) {
     console.error("Error following artist:", error);
@@ -70,6 +78,12 @@ export const unfollowArtist = async (req, res) => {
     await User.findOneAndUpdate(
       { clerkId: userId },
       { $pull: { followedArtists: artist._id } }
+    );
+
+    await neo4jSession.run(
+      `MATCH (u:User {id: $userId})-[r:FOLLOWS]->(a:Artist {id: $artistId})
+       DELETE r`,
+      { userId, artistId }
     );
 
     return res.status(200).json({ message: "Unfollowed artist", artist });

@@ -1,4 +1,5 @@
 import { ListeningHistory } from "../models/listeningHistory.model.js";
+import { neo4jSession } from "../lib/db.js";
 
 // Ghi nhận một lần nghe
 export const recordListening = async (req, res) => {
@@ -8,6 +9,14 @@ export const recordListening = async (req, res) => {
     try {
         const history = new ListeningHistory({ user: userId, song: songId });
         await history.save();
+        await neo4jSession.run(
+        `MERGE (u:User {id: $userId})
+        MERGE (s:Song {id: $songId})
+        MERGE (u)-[r:LISTENED]->(s)
+        ON CREATE SET r.count = 1
+        ON MATCH SET r.count = r.count + 1`,
+        { userId, songId }
+    );
 
         res.status(201).json({ message: "Listening recorded successfully!" });
     } catch (err) {
