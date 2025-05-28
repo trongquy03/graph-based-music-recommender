@@ -6,6 +6,7 @@ export enum GenreEnum {
   Rock = "rock",
   Hiphop = "hiphop",
   Ballad = "ballad",
+  Rap = "rap",
   EDM = "edm",
   RnB = "rnb",
   Country = "country",
@@ -17,6 +18,6 @@ export enum MoodEnum {
   None = "none",
   Happy = "happy",
   Sad = "sad",
-  Chill = "Chill",
+  Chill = "chill",
   Motivational = "motivational",
 }
