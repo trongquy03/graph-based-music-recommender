@@ -12,32 +12,45 @@ interface Props {
 }
 
 const parseSRT = (srt: string): LyricLine[] => {
-  const lines = srt.split("\n");
+  const blocks = srt
+    .replace(/\r/g, "")
+    .replace(/\uFEFF/g, "")
+    .trim()
+    .split(/\n{2,}/);
+
   const result: LyricLine[] = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    if (/^\d+$/.test(lines[i])) {
-      const timeLine = lines[i + 1];
-      const textLine = lines[i + 2];
+  const toSec = (t: string) => {
+    const [h, m, s] = t.split(":");
+    const [sec, ms] = s.split(",");
+    return (
+      parseInt(h || "0") * 3600 +
+      parseInt(m || "0") * 60 +
+      parseInt(sec || "0") +
+      parseInt(ms || "0") / 1000
+    );
+  };
 
-      const [startStr, endStr] = timeLine.split(" --> ");
-      const toSec = (t: string) => {
-        const [h, m, s] = t.split(":");
-        const [sec, ms] = s.split(",");
-        return (
-          parseInt(h) * 3600 +
-          parseInt(m) * 60 +
-          parseInt(sec) +
-          parseInt(ms) / 1000
-        );
-      };
+  for (const block of blocks) {
+    const lines = block.trim().split("\n");
+    const timeLine = lines.find(line => line.includes("-->"));
+    const textLines = lines.filter(line => !/^\d+$/.test(line) && !line.includes("-->"));
 
-      result.push({
-        start: toSec(startStr),
-        end: toSec(endStr),
-        text: textLine || "",
-      });
-    }
+    if (!timeLine) continue;
+
+    const [startStr, endStr] = timeLine.split(" --> ");
+    if (!startStr || !endStr) continue;
+
+    const start = toSec(startStr.trim());
+    const end = toSec(endStr.trim());
+
+    if (isNaN(start) || isNaN(end)) continue;
+
+    result.push({
+      start,
+      end,
+      text: textLines.join("\n").trim(),
+    });
   }
 
   return result;
@@ -55,11 +68,13 @@ const LyricKaraoke = ({ audioRef, lyricsUrl }: Props) => {
       try {
         const res = await fetch(lyricsUrl);
         const text = await res.text();
-        setLyrics(parseSRT(text));
+        const parsed = parseSRT(text);
+        setLyrics(parsed);
       } catch (err) {
         console.error("Failed to load lyrics", err);
       }
     };
+
     fetchLyrics();
   }, [lyricsUrl]);
 
@@ -109,7 +124,9 @@ const LyricKaraoke = ({ audioRef, lyricsUrl }: Props) => {
           onClick={() => {
             if (audioRef.current) {
               audioRef.current.currentTime = line.start;
-              audioRef.current.play();
+              if (!audioRef.current.paused) {
+                audioRef.current.play();
+              }
             }
           }}
           className={`transition-all duration-200 my-3 text-xl md:text-2xl font-semibold whitespace-pre-wrap tracking-wide leading-relaxed cursor-pointer ${

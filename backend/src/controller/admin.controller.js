@@ -5,6 +5,10 @@ import cloudinary from "../lib/cloudinary.js"
 import { neo4jSession } from "../lib/db.js";
 import { removeVietnameseTones } from "../lib/removeDiacritics.js";
 import { generateLyricsFromCloudinaryUrl } from "../lib/lyrics.js";
+import path from "path";
+import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
+import { uploadRawToCloudinary } from "../lib/cloudinary.js";
 
 //helper function for cloudinary uploads
 const uploadToCloudinary = async (file) => {

@@ -12,6 +12,7 @@ import { Calendar, Trash2, Mic2 } from "lucide-react";
 import UpdateSongsDialog from "./UpdateSongsDialog";
 import { axiosInstance } from "@/lib/axios";
 import toast from "react-hot-toast";
+import LyricsOptionsDialog from "@/components/LyricsOptionsDialog";
 
 const SongsTable = () => {
   const { songs, isLoading, error, deleteSong } = useMusicStore();
@@ -90,14 +91,8 @@ const SongsTable = () => {
             <TableCell className="text-right">
               <div className="flex gap-2 justify-end">
                 {/* Nút Generate Lyrics */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleGenerateLyrics(song)}
-                  title="Generate Lyrics"
-                >
-                  <Mic2 className="size-4 text-emerald-400" />
-                </Button>
+                <LyricsOptionsDialog songId={song._id} />
+
 
                 {/* Nút Update */}
                 <UpdateSongsDialog song={song} />

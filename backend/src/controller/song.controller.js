@@ -1,6 +1,6 @@
 import { Song } from "../models/song.model.js";
 import mongoose from "mongoose";
-import { neo4jSession } from "../lib/db.js";
+import { neo4jDriver } from "../lib/db.js";
 
 export const getAllSongs = async (req, res, next) => {
   try {
@@ -51,8 +51,10 @@ export const getMadeForYouSongs = async (req, res, next) => {
   const userId = req.auth?.userId || req.query.user; 
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+  const session = neo4jDriver.session(); // ✅ tạo session mới mỗi lần gọi
+
   try {
-    const result = await neo4jSession.run(
+    const result = await session.run(
       `MATCH (u:User {id: $userId})-[:LISTENED|LIKES|RATED]->(s:Song)<-[:LISTENED|LIKES|RATED]-(other:User)
        MATCH (other)-[:LISTENED|LIKES|RATED]->(rec:Song)
        WHERE NOT (u)-[:LISTENED|LIKES|RATED]->(rec)
@@ -65,13 +67,14 @@ export const getMadeForYouSongs = async (req, res, next) => {
     const songs = await Song.find({ _id: { $in: songIds.map(id => new mongoose.Types.ObjectId(id)) } })
                             .populate("artist");
 
-    // giữ đúng thứ tự như kết quả query neo4j
     const sorted = songIds.map(id => songs.find(s => s._id.toString() === id)).filter(Boolean);
 
     res.status(200).json(sorted);
   } catch (error) {
     console.error("Graph recommendation error:", error);
     res.status(500).json({ message: "Failed to get recommendations" });
+  } finally {
+    await session.close(); // ✅ đóng session sau khi xong
   }
 };
 
