@@ -46,7 +46,7 @@ const LyricsOptionsDialog = ({ songId }: Props) => {
   const handleGenerate = async () => {
     setIsSubmitting(true);
     try {
-      await axiosInstance.put(`/admin/songs/${songId}/generate-lyrics`);
+      await axiosInstance.post(`/admin/songs/${songId}/generate-lyrics`);
       toast.success("Lyrics generated via OpenAI");
       setIsOpen(false);
     } catch (err: any) {

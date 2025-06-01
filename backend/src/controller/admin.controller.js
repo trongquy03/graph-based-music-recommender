@@ -103,19 +103,39 @@ export const deleteArtist = async (req, res, next) => {
     const artist = await Artist.findById(id);
     if (!artist) return res.status(404).json({ message: "Artist not found" });
 
+    // Xoá các bài hát liên quan từ MongoDB
+    const songs = await Song.find({ artist: id });
+    for (const song of songs) {
+      if (song.albumId) {
+        await Album.findByIdAndUpdate(song.albumId, {
+          $pull: { songs: song._id },
+        });
+      }
+      await Song.findByIdAndDelete(song._id);
+
+      // Xoá song khỏi Neo4j
+      await neo4jSession.run(
+        `MATCH (s:Song {id: $id}) DETACH DELETE s`,
+        { id: song._id.toString() }
+      );
+    }
+
+    // Xoá artist từ MongoDB
     await Artist.findOneAndDelete({ _id: id });
 
+    // Xoá artist từ Neo4j
     await neo4jSession.run(
       `MATCH (a:Artist {id: $id}) DETACH DELETE a`,
       { id }
     );
 
-    res.status(200).json({ message: "Artist deleted successfully" });
+    res.status(200).json({ message: "Artist and related songs deleted successfully" });
   } catch (err) {
     console.error("Error deleting artist:", err);
     next(err);
   }
 };
+
 
 export const createSong = async (req, res, next) => {
   try {
@@ -149,14 +169,11 @@ export const createSong = async (req, res, next) => {
     }
 
     await neo4jSession.run(
-      `MATCH (a:Artist {id: $artistId})
-       MERGE (s:Song {
-         id: $id,
-         title: $title,
-         genre: $genre,
-         mood: $mood
-       })
-       MERGE (a)-[:By]->(s)`,
+      `MERGE (s:Song {id: $id})
+      SET s.title = $title, s.genre = $genre, s.mood = $mood
+      WITH s
+      MATCH (a:Artist {id: $artistId})
+      MERGE (a)-[:By]->(s)`,
       {
         id: song._id.toString(),
         title: song.title,
@@ -165,6 +182,20 @@ export const createSong = async (req, res, next) => {
         artistId,
       }
     );
+    if (albumId) {
+    await neo4jSession.run(
+      `
+      MATCH (s:Song {id: $songId})
+      MATCH (al:Album {id: $albumId})
+      MERGE (s)-[:IN_ALBUM]->(al)
+      `,
+      {
+        songId: song._id.toString(),
+        albumId: albumId.toString(),
+      }
+    );
+  }
+
 
     res.status(201).json(song);
   } catch (error) {
@@ -223,23 +254,53 @@ export const updateSong = async (req, res, next) => {
       });
     }
 
+
     await neo4jSession.run(
-      `MATCH (s:Song {id: $id})
-       SET s.title = $title, s.genre = $genre, s.mood = $mood`,
+      `
+      MATCH (s:Song {id: $id})
+      OPTIONAL MATCH (s)<-[r:By]-(:Artist)
+      DELETE r
+      WITH s
+      MERGE (a:Artist {id: $artistId})
+      MERGE (a)-[:By]->(s)
+      SET s.title = $title, s.genre = $genre, s.mood = $mood
+      `,
       {
-        id,
+        id: id.toString(),
         title,
         genre,
         mood,
+        artistId: artistId.toString(),
       }
     );
 
+    if (albumId) {
+      await neo4jSession.run(
+        `MATCH (s:Song {id: $id})-[oldRel:IN_ALBUM]->(:Album)
+         DELETE oldRel
+         WITH s
+         MATCH (al:Album {id: $albumId})
+         MERGE (s)-[:IN_ALBUM]->(al)`,
+        {
+          id: id.toString(),
+          albumId: albumId.toString(),
+        }
+      );
+    } else {
+      await neo4jSession.run(
+        `MATCH (s:Song {id: $id})-[rel:IN_ALBUM]->(:Album)
+         DELETE rel`,
+        { id: id.toString() }
+      );
+    }
+
     res.status(200).json(updatedSong);
   } catch (error) {
-    console.log("Error in updateSong", error);
+    console.error("Error in updateSong", error);
     next(error);
   }
 };
+
 
 export const deleteSong = async (req, res, next) => {
   try {
@@ -294,7 +355,7 @@ export const createAlbum = async (req, res, next) => {
          title: $title,
          releaseYear: $year
        })
-       MERGE (a)-[:RELEASED]->(al)`,
+       MERGE (a)-[:PRODUCED]->(al)`,
       {
         id: album._id.toString(),
         title: album.title,
@@ -343,6 +404,20 @@ export const updateAlbum = async (req, res, next) => {
         year: releaseYear,
       }
     );
+
+    if (artistId && artistId !== existingAlbum.artist.toString()) {
+      await neo4jSession.run(`
+        MATCH (aOld:Artist)-[r:PRODUCED]->(al:Album {id: $id})
+        DELETE r
+        WITH al
+        MATCH (aNew:Artist {id: $artistId})
+        MERGE (aNew)-[:PRODUCED]->(al)
+      `, {
+        id,
+        artistId,
+      });
+}
+
 
     res.status(200).json(updatedAlbum);
   } catch (error) {
