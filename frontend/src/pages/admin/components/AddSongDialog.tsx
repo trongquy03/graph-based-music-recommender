@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/clerk-react";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,8 @@ interface NewSong {
 }
 
 const AddSongDialog = () => {
-  const { albums } = useMusicStore();
+  const { isSignedIn } = useAuth();
+  const { albums, fetchAlbums } = useMusicStore();
   const { artists, fetchArtists } = useArtistStore();
 
   const [songDialogOpen, setSongDialogOpen] = useState(false);
@@ -53,8 +55,12 @@ const AddSongDialog = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchArtists();
+    fetchArtists(1, 50, "", isSignedIn ?? false);
   }, [fetchArtists]);
+  useEffect(() => {
+  fetchAlbums();
+}, []);
+
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -107,8 +113,8 @@ const AddSongDialog = () => {
     <Dialog open={songDialogOpen} onOpenChange={setSongDialogOpen}>
       <DialogTrigger asChild>
         <Button className="bg-emerald-500 hover:bg-emerald-600 text-black">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Song
+          <Plus className="h-4 w-4" />
+          Thêm Bài Hát
         </Button>
       </DialogTrigger>
 
@@ -243,7 +249,7 @@ const AddSongDialog = () => {
               onChange={(val) => setNewSong({ ...newSong, album: val })}
               options={[
                 { label: "No Album (Single)", value: "none" },
-                ...albums.map((album) => ({
+                ...(Array.isArray(albums) ? albums : []).map((album) => ({
                   label: album.title,
                   value: album._id,
                 })),

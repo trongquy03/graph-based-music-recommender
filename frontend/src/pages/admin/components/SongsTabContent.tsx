@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Music } from "lucide-react";
 import SongsTable from "./SongsTable";
 import AddSongDialog from "./AddSongDialog";
@@ -11,9 +11,9 @@ const SongsTabContent = () => {
 					<div>
 						<CardTitle className='flex items-center gap-2'>
 							<Music className='size-5 text-emerald-500' />
-							Songs Library
+							Danh Sách Bài hát
 						</CardTitle>
-						<CardDescription>Manage your music tracks</CardDescription>
+						{/* <CardDescription>Manage your music tracks</CardDescription> */}
 					</div>
 					<AddSongDialog />
 				</div>

@@ -60,10 +60,10 @@ export const FollowButton = ({ artistId }: FollowButtonProps) => {
           className="text-sm px-4 py-1 rounded-full"
           onClick={handleToggleFollow}
         >
-          {following ? " ✓ Đã Theo Dõi" : "Theo Dõi"}
+          {following ? "unfollow" : "follow"}
         </Button>
       )}
-      <span className="text-xs text-white/60">{followersCount} người theo dõi</span>
+      <span className="text-xs text-white/60">{followersCount} followers</span>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Library } from "lucide-react";
 import AlbumsTable from "./AlbumsTable";
 import AddAlbumDialog from "./AddAlbumDialog";
@@ -11,9 +11,9 @@ const AlbumsTabContent = () => {
 					<div>
 						<CardTitle className='flex items-center gap-2'>
 							<Library className='h-5 w-5 text-violet-500' />
-							Albums Library
+							Danh Sách Albums
 						</CardTitle>
-						<CardDescription>Manage your album collection</CardDescription>
+						{/* <CardDescription>Manage your album collection</CardDescription> */}
 					</div>
 					<AddAlbumDialog />
 				</div>

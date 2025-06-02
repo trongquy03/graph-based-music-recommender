@@ -40,7 +40,7 @@ app.use(cors(
     }
 ))
 
-app.use(express.json()); // parse req.body
+app.use(express.json());
 app.use(clerkMiddleware()); // auth request
 app.use(fileUpload({
     useTempFiles:true,

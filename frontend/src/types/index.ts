@@ -13,7 +13,11 @@ export interface Song {
     artist: Artist;
     mood?: "happy" | "sad" | "chill" | "motivational";
     genre: "pop" | "rock" | "hiphop" | "ballad" | "edm" | "rnb" | "country" | "lofi" | "movie";
-    albumId: string | null;
+    albumId?: string | null;
+    album?: {
+      _id: string;
+      title: string;
+    };
     lyricsUrl?: string;
     imageUrl: string;
     audioUrl: string;

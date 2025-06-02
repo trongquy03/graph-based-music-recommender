@@ -61,9 +61,9 @@ const AddArtistDialog = () => {
   return (
     <Dialog open={artistDialogOpen} onOpenChange={setArtistDialogOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-indigo-500 hover:bg-indigo-600 text-white">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Artist
+        <Button className="bg-emerald-500 hover:bg-emerald-600 text-black">
+          <Plus className="h-4 w-4" />
+          Thêm Nghệ Sĩ
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-zinc-900 border-zinc-700 text-white">

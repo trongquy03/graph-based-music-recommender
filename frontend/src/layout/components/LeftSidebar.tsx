@@ -22,7 +22,7 @@ const LeftSidebar = () => {
 
   useEffect(() => {
     const load = async () => {
-      await fetchArtists(isSignedIn ?? false);
+      await fetchArtists(1, 10, "", isSignedIn ?? false);
     };
     load();
   }, [fetchArtists, isSignedIn]);

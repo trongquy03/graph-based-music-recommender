@@ -5,13 +5,33 @@ import { neo4jSession } from "../lib/db.js";
 // Get all artists
 export const getAllArtists = async (req, res, next) => {
   try {
-    const artists = await Artist.find().sort({ name: 1 });
-    res.status(200).json(artists);
+    const { search, page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    const total = await Artist.countDocuments(query);
+    const artists = await Artist.find(query)
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / limit),
+      data: artists,
+    });
   } catch (error) {
     console.error("Error fetching artists:", error);
     next(error);
   }
 };
+
 
 // Get artist by ID
 export const getArtistById = async (req, res, next) => {

@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -8,110 +10,133 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMusicStore } from "@/stores/useMusicStore";
-import { Calendar, Trash2, Mic2 } from "lucide-react";
+import { Calendar, Trash2 } from "lucide-react";
 import UpdateSongsDialog from "./UpdateSongsDialog";
-import { axiosInstance } from "@/lib/axios";
-import toast from "react-hot-toast";
 import LyricsOptionsDialog from "@/components/LyricsOptionsDialog";
 
 const SongsTable = () => {
-  const { songs, isLoading, error, deleteSong } = useMusicStore();
+  const {
+    songs,
+    fetchSongs,
+    page,
+    totalPages,
+    deleteSong,
+  } = useMusicStore();
 
-  const handleGenerateLyrics = async (song: any) => {
-  if (song.lyricsUrl) {
-    toast("Lyrics already exist", { icon: "✅" });
-    return;
-  }
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
 
-  try {
-    const res = await axiosInstance.post(`/admin/songs/${song._id}/generate-lyrics`);
-    if (res.data?.lyricsUrl) {
-      toast.success("Lyrics generated successfully");
-    } else {
-      toast("No lyrics returned", { icon: "⚠️" });
-    }
-  } catch (err: any) {
-    toast.error("Failed to generate lyrics");
-    console.error(err);
-  }
-};
-
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-zinc-400">Loading songs...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-red-400">{error}</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchSongs(currentPage, limit, { search });
+  }, [currentPage, limit, search]);
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-zinc-800/50">
-          <TableHead className="w-[50px]"></TableHead>
-          <TableHead>Title</TableHead>
-          <TableHead>Artist</TableHead>
-          <TableHead>Release Date</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <Input
+          placeholder="🔍 Tìm bài hát hoặc nghệ sĩ..."
+          value={search}
+          onChange={(e) => {
+            setCurrentPage(1);
+            setSearch(e.target.value);
+          }}
+        />
+      </div>
 
-      <TableBody>
-        {songs.map((song) => (
-          <TableRow key={song._id} className="hover:bg-zinc-800/50">
-            <TableCell>
-              <img
-                src={song.imageUrl}
-                alt={song.title}
-                className="size-10 rounded object-cover"
-              />
-            </TableCell>
-            <TableCell className="font-medium">{song.title}</TableCell>
-            <TableCell>
-              {typeof song.artist === "object" && song.artist !== null
-                ? song.artist.name
-                : song.artist}
-            </TableCell>
-            <TableCell>
-              <span className="inline-flex items-center gap-1 text-zinc-400">
-                <Calendar className="h-4 w-4" />
-                {song.createdAt.split("T")[0]}
-              </span>
-            </TableCell>
-
-            <TableCell className="text-right">
-              <div className="flex gap-2 justify-end">
-                {/* Nút Generate Lyrics */}
-                <LyricsOptionsDialog songId={song._id} />
-
-
-                {/* Nút Update */}
-                <UpdateSongsDialog song={song} />
-
-                {/* Nút Delete */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                  onClick={() => deleteSong(song._id)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            </TableCell>
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-zinc-800/50">
+            <TableHead className="w-[50px]"></TableHead>
+            <TableHead>Tiêu đề</TableHead>
+            <TableHead>Nghệ sĩ</TableHead>
+            <TableHead>Ngày tạo</TableHead>
+            <TableHead className="text-right">Hành động</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+
+        <TableBody>
+          {songs.map((song) => (
+            <TableRow key={song._id} className="hover:bg-zinc-800/50">
+              <TableCell>
+                <img
+                  src={song.imageUrl}
+                  alt={song.title}
+                  className="size-10 rounded object-cover"
+                />
+              </TableCell>
+              <TableCell className="font-medium">{song.title}</TableCell>
+              <TableCell>
+                {typeof song.artist === "object" && song.artist !== null
+                  ? song.artist.name
+                  : song.artist}
+              </TableCell>
+              <TableCell>
+                <span className="inline-flex items-center gap-1 text-zinc-400">
+                  <Calendar className="h-4 w-4" />
+                  {song.createdAt?.split?.("T")[0] ?? "Không rõ"}
+
+                </span>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex gap-2 justify-end">
+                  <LyricsOptionsDialog songId={song._id} />
+                  <UpdateSongsDialog song={song} />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                    onClick={() => deleteSong(song._id)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <div className="flex justify-between items-center pt-4">
+        <div className="text-sm text-zinc-400">
+          Trang {page} / {totalPages}
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-zinc-400">Bài/trang:</span>
+          <select
+            value={limit}
+            onChange={(e) => {
+              setLimit(parseInt(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="bg-zinc-800 text-white px-2 py-1 rounded text-sm border border-zinc-600"
+          >
+            {[10, 20, 50].map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={page <= 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
+            Trang trước
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={page >= totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+          >
+            Trang sau
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

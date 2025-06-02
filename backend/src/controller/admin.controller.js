@@ -207,11 +207,21 @@ export const createSong = async (req, res, next) => {
 export const updateSong = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, artistId, albumId, duration, audioUrl, imageUrl, genre, mood } = req.body;
+    const {
+      title,
+      artistId,
+      albumId,
+      duration,
+      audioUrl,
+      imageUrl,
+      genre,
+      mood,
+    } = req.body;
 
     const existingSong = await Song.findById(id);
     if (!existingSong) return res.status(404).json({ message: "Song not found" });
 
+    // Xử lý Cloudinary nếu bạn cho phép cập nhật URL mới (đã xử lý ở frontend)
     if (imageUrl && imageUrl !== existingSong.imageUrl) {
       await deleteFromCloudinary(existingSong.imageUrl);
     }
@@ -220,6 +230,7 @@ export const updateSong = async (req, res, next) => {
       await deleteFromCloudinary(existingSong.audioUrl);
     }
 
+    // Nếu album cũ tồn tại nhưng album mới khác → xoá khỏi album cũ
     if (
       existingSong.albumId &&
       (!albumId || existingSong.albumId.toString() !== albumId)
@@ -229,12 +240,16 @@ export const updateSong = async (req, res, next) => {
       });
     }
 
+    // ✅ Gán null nếu albumId là chuỗi rỗng hoặc null
+    const safeAlbumId =
+      albumId === "none" || albumId === "" || albumId === null ? null : albumId;
+
     const updatedSong = await Song.findByIdAndUpdate(
       id,
       {
         title,
         artist: artistId,
-        albumId: albumId === "none" ? null : albumId,
+        albumId: safeAlbumId,
         duration,
         audioUrl: audioUrl || existingSong.audioUrl,
         imageUrl: imageUrl || existingSong.imageUrl,
@@ -245,16 +260,7 @@ export const updateSong = async (req, res, next) => {
       { new: true }
     );
 
-    if (
-      albumId &&
-      (!existingSong.albumId || existingSong.albumId.toString() !== albumId)
-    ) {
-      await Album.findByIdAndUpdate(albumId, {
-        $addToSet: { songs: updatedSong._id },
-      });
-    }
-
-
+    // Cập nhật Neo4j
     await neo4jSession.run(
       `
       MATCH (s:Song {id: $id})
@@ -274,7 +280,7 @@ export const updateSong = async (req, res, next) => {
       }
     );
 
-    if (albumId) {
+    if (safeAlbumId) {
       await neo4jSession.run(
         `MATCH (s:Song {id: $id})-[oldRel:IN_ALBUM]->(:Album)
          DELETE oldRel
@@ -283,7 +289,7 @@ export const updateSong = async (req, res, next) => {
          MERGE (s)-[:IN_ALBUM]->(al)`,
         {
           id: id.toString(),
-          albumId: albumId.toString(),
+          albumId: safeAlbumId.toString(),
         }
       );
     } else {
@@ -300,6 +306,8 @@ export const updateSong = async (req, res, next) => {
     next(error);
   }
 };
+
+
 
 
 export const deleteSong = async (req, res, next) => {

@@ -22,7 +22,7 @@ interface SearchableSelectProps {
   placeholder?: string;
 }
 
-// ✅ Hàm xóa dấu tiếng Việt
+// Hàm xóa dấu tiếng Việt
 function removeDiacritics(str: string): string {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }

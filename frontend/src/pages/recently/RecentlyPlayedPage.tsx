@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { Play, Pause, Star } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
 import { useRatingStore } from "@/stores/useRatingStore";
 import RatingSelector from "@/components/RatingSelector";
 
@@ -14,6 +15,7 @@ const formatDuration = (seconds: number) => {
 };
 
 const RecentlyPlayedPage = () => {
+  const { isSignedIn } = useAuth();
   const { listeningHistory, fetchListeningHistory } = useMusicStore();
   const {
   ratings,
@@ -31,7 +33,7 @@ const RecentlyPlayedPage = () => {
 
   useEffect(() => {
     fetchListeningHistory();
-    fetchUserRatings();
+    fetchUserRatings(isSignedIn ? true : false);
   }, [fetchListeningHistory, fetchUserRatings]);
 
   useEffect(() => {

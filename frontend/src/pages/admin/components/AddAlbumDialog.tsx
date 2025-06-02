@@ -78,9 +78,9 @@ const handleSubmit = async () => {
   return (
     <Dialog open={albumDialogOpen} onOpenChange={setAlbumDialogOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-violet-500 hover:bg-violet-600 text-white">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Album
+        <Button className="bg-emerald-500 hover:bg-emerald-600 text-black">
+          <Plus className=" h-4 w-4" />
+          Thêm Album
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">

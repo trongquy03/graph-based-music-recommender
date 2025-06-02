@@ -17,6 +17,8 @@ const fetchLikeCount = async (songId: string): Promise<number> => {
 interface MusicStore {
   songs: Song[];
   albums: Album[];
+  page: number;
+  totalPages: number;
   isLoading: boolean;
   error: string | null;
   currentAlbum: Album | null;
@@ -36,7 +38,6 @@ interface MusicStore {
   fetchTrendingSongs: () => Promise<void>;
   fetchLikeCountBySongId: (songId: string) => Promise<void>;
   fetchStats: () => Promise<void>;
-  fetchSongs: () => Promise<void>;
   deleteSong: (id: string) => Promise<void>;
   deleteAlbum: (id: string) => Promise<void>;
   fetchLikedSongs: () => Promise<void>;
@@ -44,11 +45,31 @@ interface MusicStore {
   likeSong: (songId: string) => Promise<void>;
   unlikeSong: (songId: string) => Promise<void>;
   resetLikes: () => void;
+  fetchAlbumsWithPagination: (
+    page?: number,
+    limit?: number,
+    search?: string
+  ) => Promise<{ albums: Album[]; totalPages: number }>;
+
+  fetchSongs: (
+    page?: number,
+    limit?: number,
+    filters?: {
+      search?: string;
+      artist?: string;
+      album?: string;
+      startDate?: string;
+      endDate?: string;
+    }
+  ) => Promise<void>;
+
 }
 
 export const useMusicStore = create<MusicStore>((set, get) => ({
   albums: [],
   songs: [],
+  page: 1,
+  totalPages: 1,
   isLoading: false,
   error: null,
   currentAlbum: null,
@@ -82,37 +103,85 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
   },
 
-  deleteAlbum: async (id) => {
-    set({ isLoading: true, error: null });
-    try {
-      await axiosInstance.delete(`/admin/albums/${id}`);
-      set((state) => ({
-        albums: state.albums.filter((album) => album._id !== id),
-        songs: state.songs.map((song) =>
-          song.albumId === state.albums.find((a) => a._id === id)?.title
-            ? { ...song, album: null }
-            : song
-        ),
-      }));
-      toast.success("Album deleted successfully");
-    } catch (error: any) {
-      toast.error("Failed to delete album: " + error.message);
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+ deleteAlbum: async (id) => {
+  set({ isLoading: true, error: null });
+  try {
+    await axiosInstance.delete(`/admin/albums/${id}`);
+    set((state) => ({
+      albums: state.albums.filter((album) => album._id !== id),
+      songs: state.songs.map((song) =>
+        song.albumId === id
+          ? { ...song, albumId: undefined, album: undefined }
+          : song
+      ),
+    }));
+    toast.success("Album deleted successfully");
+  } catch (error: any) {
+    toast.error("Failed to delete album: " + error.message);
+  } finally {
+    set({ isLoading: false });
+  }
+},
 
-  fetchSongs: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await axiosInstance.get("/songs");
-      set({ songs: response.data });
-    } catch (error: any) {
-      set({ error: error.message });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+
+// useMusicStore.ts
+fetchSongs: async (
+  page = 1,
+  limit = 20,
+  filters: {
+    search?: string;
+    artist?: string;
+    album?: string;
+    startDate?: string;
+    endDate?: string;
+  } = {}
+) => {
+  set({ isLoading: true, error: null });
+
+  try {
+    const res = await axiosInstance.get("/songs", {
+      params: {
+        page,
+        limit,
+        ...filters, 
+      },
+    });
+
+    set({
+      songs: res.data.data,
+      page: res.data.page,
+      totalPages: res.data.totalPages,
+    });
+  } catch (err: any) {
+    set({ error: err.message });
+  } finally {
+    set({ isLoading: false });
+  }
+},
+
+fetchAlbumsWithPagination: async (page = 1, limit = 20, search = "") => {
+  set({ isLoading: true, error: null });
+
+  try {
+    const res = await axiosInstance.get("/albums", {
+      params: { page, limit, search },
+    });
+
+    return {
+      albums: res.data.data || [],
+      totalPages: res.data.totalPages || 1,
+    };
+  } catch (error: any) {
+    toast.error("Failed to fetch albums");
+    return {
+      albums: [],
+      totalPages: 1,
+    };
+  } finally {
+    set({ isLoading: false });
+  }
+},
+
 
   fetchStats: async () => {
     set({ isLoading: true, error: null });
@@ -127,16 +196,17 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   },
 
   fetchAlbums: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await axiosInstance.get("/albums");
-      set({ albums: response.data });
-    } catch (error: any) {
-      set({ error: error.response?.data?.message || error.message });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+  set({ isLoading: true, error: null });
+  try {
+    const response = await axiosInstance.get("/albums");
+    set({ albums: response.data.data || [] });
+  } catch (error: any) {
+    set({ error: error.response?.data?.message || error.message });
+  } finally {
+    set({ isLoading: false });
+  }
+},
+
 
   fetchAlbumById: async (id) => {
     set({ isLoading: true, error: null });
@@ -228,14 +298,17 @@ fetchLikeCountBySongId: async (songId: string) => {
 fetchListeningHistory: async () => {
   try {
     const response = await axiosInstance.get("/history");
-    const songs = response.data.map((entry: any) => entry.song);
+    const songs = (response.data || []).map((entry: any) => entry.song).filter(Boolean);
     set({ listeningHistory: songs });
   } catch (error: any) {
+    console.error("Error fetching history", error);
     if (error?.response?.status !== 401) {
       toast.error("Lỗi khi tải lịch sử nghe nhạc");
     }
+    set({ listeningHistory: [] });
   }
 },
+
 
 
 

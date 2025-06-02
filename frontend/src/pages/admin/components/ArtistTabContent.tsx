@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import AddArtistDialog from "./AddArtistDialog";
 import ArtistsTable from "./ArtistsTable";
@@ -11,9 +11,9 @@ const ArtistTabContent = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-indigo-500" />
-              Artists Library
+              Danh Sách Nghệ Sĩ
             </CardTitle>
-            <CardDescription>Manage your artist collection</CardDescription>
+            {/* <CardDescription>Manage your artist collection</CardDescription> */}
           </div>
           <AddArtistDialog />
         </div>

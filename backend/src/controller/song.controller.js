@@ -4,14 +4,77 @@ import { neo4jDriver } from "../lib/db.js";
 
 export const getAllSongs = async (req, res, next) => {
   try {
-    const songs = await Song.find()
-      .sort({ createdAt: -1 })
-      .populate("artist", "name");
-    res.json(songs);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const { search, artist } = req.query; // 👈 nếu có truyền artist filter
+
+    const pipeline = [];
+
+    pipeline.push({
+      $lookup: {
+        from: "artists",
+        localField: "artist",
+        foreignField: "_id",
+        as: "artist",
+      },
+    });
+
+    pipeline.push({ $unwind: "$artist" });
+
+ 
+    const match = {};
+    if (search) {
+      match.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { "artist.name": { $regex: search, $options: "i" } },
+      ];
+    }
+    if (artist && mongoose.Types.ObjectId.isValid(artist)) {
+      match["artist._id"] = new mongoose.Types.ObjectId(artist);
+    }
+    if (Object.keys(match).length) pipeline.push({ $match: match });
+
+    // Tổng số
+    const totalPipeline = [...pipeline, { $count: "total" }];
+    const totalResult = await Song.aggregate(totalPipeline);
+    const total = totalResult[0]?.total || 0;
+
+    // Phân trang
+    pipeline.push({ $sort: { createdAt: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    pipeline.push({
+      $project: {
+        _id: 1,
+        title: 1,
+        imageUrl: 1,
+        audioUrl: 1,
+        lyricsUrl: 1,
+        createdAt: 1,
+        artist: {
+          _id: "$artist._id",
+          name: "$artist.name",
+        },
+      },
+    });
+
+    const songs = await Song.aggregate(pipeline);
+
+    res.json({
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data: songs,
+    });
   } catch (error) {
     next(error);
   }
 };
+
+
 
 export const getFeaturedSongs = async (req, res, next) => {
   try {
@@ -58,7 +121,7 @@ export const getMadeForYouSongs = async (req, res, next) => {
     const result = await session.run(
       `MATCH (u:User {id: $userId})-[:LISTENED|LIKES|RATED]->(s:Song)<-[:LISTENED|LIKES|RATED]-(other:User)
        MATCH (other)-[:LISTENED|LIKES|RATED]->(rec:Song)
-       WHERE NOT (u)-[:LISTENED|LIKES|RATED]->(rec)
+       WHERE NOT (u)-[:LIKES|RATED]->(rec)
        RETURN DISTINCT rec.id AS songId
        LIMIT 15`,
       { userId }

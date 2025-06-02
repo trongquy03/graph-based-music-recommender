@@ -24,9 +24,10 @@ const ArtistDetailPage = () => {
   const [followers, setFollowers] = useState(0);
 
   useEffect(() => {
-    fetchArtists(isSignedIn ?? false);
+    fetchArtists(1, 20, "", isSignedIn ?? false);
     fetchAlbums();
-    fetchSongs();
+    fetchSongs(1, 50, { artist: artistId });
+
     fetchFollowersCount(artistId!).then(setFollowers);
   }, [artistId, isSignedIn]);
 
@@ -96,13 +97,14 @@ const ArtistDetailPage = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl text-white font-semibold">Bài Hát Nổi Bật</h2>
               {artistSongs.length > 6 && (
-                <button
-                  onClick={() => navigate(`/artists/${artistId}/songs`)}
-                  className="text-sm text-purple-400 hover:underline"
-                >
-                  Xem tất cả
-                </button>
-              )}
+            <button
+              onClick={() => navigate(`/artists/${artist._id}/songs`)}
+              className="text-sm text-purple-400 hover:underline"
+            >
+              Xem tất cả
+            </button>
+          )}
+
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
