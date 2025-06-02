@@ -64,14 +64,14 @@ export const PlaybackControls = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    if (currentSong) {
-      fetchLikeCountBySongId(currentSong._id);
-      console.log("Lyrics URL:", currentSong?.lyricsUrl);
-      console.log("currentSong:", currentSong);
+useEffect(() => {
+  if (currentSong && isSignedIn) {
+    fetchLikeCountBySongId(currentSong._id);
+    console.log("Lyrics URL:", currentSong.lyricsUrl);
+    console.log("currentSong:", currentSong);
+  }
+}, [currentSong, isSignedIn]);
 
-    }
-  }, [currentSong]);
 
   useEffect(() => {
     audioRef.current = document.querySelector("audio");
@@ -300,17 +300,17 @@ export const PlaybackControls = () => {
 
 
 
-          <Button
-  size="icon"
-  variant="ghost"
-  onClick={() => setShowLyrics(!showLyrics)}
-  className={clsx(
-    "cursor-pointer transition-colors",
-    showLyrics ? "text-emerald-400" : "text-zinc-400 hover:text-white"
-  )}
->
-  <Mic2 className="h-4 w-4" />
-</Button>
+            <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setShowLyrics(!showLyrics)}
+            className={clsx(
+              "cursor-pointer transition-colors",
+              showLyrics ? "text-emerald-400" : "text-zinc-400 hover:text-white"
+            )}
+          >
+            <Mic2 className="h-4 w-4" />
+          </Button>
 
 
           {/* <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">

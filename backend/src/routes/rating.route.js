@@ -4,13 +4,12 @@ import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.use(protectRoute);
 
 
 router.get("/average/:id", getAverageRating);
 
-router.post("/", rateSong);
-router.delete("/", deleteRating);
+router.post("/",protectRoute, rateSong);
+router.delete("/",protectRoute, deleteRating);
 
-router.get("/", getRatings);
+router.get("/",protectRoute, getRatings);
 export default router

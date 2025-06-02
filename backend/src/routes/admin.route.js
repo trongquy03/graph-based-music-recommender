@@ -8,7 +8,6 @@ const router = Router();
 router.use(protectRoute, requireAdmin)
 
 router.get('/check', checkAdmin)
-
 router.post("/songs/:id/generate-lyrics", generateLyricsForSong);
 router.put("/songs/:id/lyrics/manual", uploadLyricsManually);
 

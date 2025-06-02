@@ -5,6 +5,7 @@ import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { FollowButton } from "./components/FollowButtonProps";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@clerk/clerk-react";
 import Topbar from "@/components/Topbar";
 import LikeButton from "../home/components/LikeButton";
 import PlayButton from "../home/components/PlayButton";
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Pause, Play } from "lucide-react";
 
 const ArtistDetailPage = () => {
+  const { isSignedIn } = useAuth();
   const { artistId } = useParams();
   const navigate = useNavigate();
   const { artists, fetchArtists, fetchFollowersCount } = useArtistStore();
@@ -22,11 +24,11 @@ const ArtistDetailPage = () => {
   const [followers, setFollowers] = useState(0);
 
   useEffect(() => {
-    fetchArtists();
+    fetchArtists(isSignedIn ?? false);
     fetchAlbums();
     fetchSongs();
     fetchFollowersCount(artistId!).then(setFollowers);
-  }, [artistId]);
+  }, [artistId, isSignedIn]);
 
   useEffect(() => {
     const found = artists.find((a) => a._id === artistId);
@@ -47,10 +49,13 @@ const ArtistDetailPage = () => {
   const topAlbums = artistAlbums.slice(0, 3);
 
   const handlePlayAll = () => {
-    if (artistSongs.length > 0) {
-      playAlbum(artistSongs, 0);
-    }
-  };
+  if (artistSongs.length > 0) {
+    playAlbum(artistSongs, 0);
+  } else {
+    console.warn("Artist has no songs to play.");
+  }
+};
+
 
   const isCurrentArtistPlaying = artistSongs.some(song => song._id === currentSong?._id);
 

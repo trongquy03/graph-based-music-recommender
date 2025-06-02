@@ -8,6 +8,7 @@ import LikeButton from "./LikeButton";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { useRatingStore } from "@/stores/useRatingStore";
 import { Star } from "lucide-react";
+import { useEffect } from "react";
 
 type SectionGridProps = {
   title: string;
@@ -22,7 +23,18 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
   const {
     getAverageRatingForSong,
     getUserRatingForSong,
+    fetchAverageRatingsBulk,
   } = useRatingStore();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      useRatingStore.getState().fetchUserRatings(true); 
+    }
+
+    const songIds = songs.map((s) => s._id);
+    fetchAverageRatingsBulk(songIds);
+  }, [songs, isSignedIn]);
+
 
   if (!isSignedIn && title === "Gợi ý cho bạn") return null;
   if (isLoading) return <SectionGridSkeleton />;

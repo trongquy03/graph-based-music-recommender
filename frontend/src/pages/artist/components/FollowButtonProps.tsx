@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useArtistStore } from "@/stores/useArtistStore";
+import { useAuth } from "@clerk/clerk-react";
 
 interface FollowButtonProps {
   artistId: string;
 }
 
 export const FollowButton = ({ artistId }: FollowButtonProps) => {
+  const { isSignedIn } = useAuth();
   const {
     isFollowing,
     followArtist,
@@ -19,19 +21,30 @@ export const FollowButton = ({ artistId }: FollowButtonProps) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const isUserFollowing = await isFollowing(artistId);
       const count = await fetchFollowersCount(artistId);
-      setFollowing(isUserFollowing);
       setFollowersCount(count);
+
+      if (isSignedIn) {
+        try {
+          const isUserFollowing = await isFollowing(artistId);
+          setFollowing(isUserFollowing);
+        } catch (err) {
+          console.warn("Không thể kiểm tra trạng thái theo dõi:", err);
+        }
+      }
     };
     fetchData();
-  }, [artistId, isFollowing, fetchFollowersCount]);
+  }, [artistId, isSignedIn, isFollowing, fetchFollowersCount]);
 
   const handleToggleFollow = async () => {
+    if (!isSignedIn) {
+      return alert("Vui lòng đăng nhập để theo dõi nghệ sĩ.");
+    }
+
     if (following) {
       await unfollowArtist(artistId);
       setFollowing(false);
-      setFollowersCount((prev) => prev - 1);
+      setFollowersCount((prev) => Math.max(0, prev - 1));
     } else {
       await followArtist(artistId);
       setFollowing(true);
@@ -41,14 +54,16 @@ export const FollowButton = ({ artistId }: FollowButtonProps) => {
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        className="text-sm px-4 py-1 rounded-full"
-        onClick={handleToggleFollow}
-      >
-        {following ? "Unfollow" : "Follow"}
-      </Button>
-      <span className="text-xs text-white/60">{followersCount} followers</span>
+      {isSignedIn && (
+        <Button
+          variant="outline"
+          className="text-sm px-4 py-1 rounded-full"
+          onClick={handleToggleFollow}
+        >
+          {following ? " ✓ Đã Theo Dõi" : "Theo Dõi"}
+        </Button>
+      )}
+      <span className="text-xs text-white/60">{followersCount} người theo dõi</span>
     </div>
   );
 };

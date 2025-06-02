@@ -189,7 +189,6 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   fetchLikedSongs: async () => {
     const { hasFetchedLikes } = get();
     if (hasFetchedLikes) return;
-    console.trace("🔍 fetchLikedSongs() được gọi ở đâu?");
 
     set({ isLoading: true, error: null });
 
@@ -209,28 +208,35 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     }
   },
 
-  fetchLikeCountBySongId: async (songId: string) => {
-    try {
-      const count = await fetchLikeCount(songId);
-      set((state) => ({
-        likeCounts: {
-          ...state.likeCounts,
-          [songId]: count,
-        },
-      }));
-    } catch (err) {
+fetchLikeCountBySongId: async (songId: string) => {
+  try {
+    const response = await axiosInstance.get(`/likes/count/${songId}`);
+    const count = response.data.likeCount;
+    set((state) => ({
+      likeCounts: {
+        ...state.likeCounts,
+        [songId]: count,
+      },
+    }));
+  } catch (err: any) {
+    if (err?.response?.status !== 401) {
       console.error("Failed to fetch like count", err);
     }
-  },
-  fetchListeningHistory: async () => {
-      try {
-        const response = await axiosInstance.get("/history");
-        const songs = response.data.map((entry: any) => entry.song);
-        set({ listeningHistory: songs });
-      } catch (error) {
-        toast.error("Lỗi khi tải lịch sử nghe nhạc");
-      }
-    },
+  }
+},
+
+fetchListeningHistory: async () => {
+  try {
+    const response = await axiosInstance.get("/history");
+    const songs = response.data.map((entry: any) => entry.song);
+    set({ listeningHistory: songs });
+  } catch (error: any) {
+    if (error?.response?.status !== 401) {
+      toast.error("Lỗi khi tải lịch sử nghe nhạc");
+    }
+  }
+},
+
 
 
   likeSong: async (songId) => {

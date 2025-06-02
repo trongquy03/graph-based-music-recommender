@@ -184,7 +184,7 @@ export const SearchBox = () => {
 
         <input
           ref={inputRef}
-          placeholder="Tìm bài hát hoặc nghệ sĩ..."
+          placeholder="Tìm bài hát, nghệ sĩ..."
           className="w-full pl-10 pr-8 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

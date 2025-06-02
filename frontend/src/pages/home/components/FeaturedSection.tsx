@@ -13,7 +13,8 @@ const FeaturedSection = () => {
   const {
     getAverageRatingForSong,
     getUserRatingForSong,
-    fetchAverageRating
+    fetchAverageRating,
+    fetchAverageRatingsBulk,
   } = useRatingStore();
 
   const fetchedRef = useRef<Record<string, boolean>>({});
@@ -26,6 +27,18 @@ useEffect(() => {
     }
   });
 }, [featuredSongs]);
+
+
+useEffect(() => {
+  if (isSignedIn) {
+    useRatingStore.getState().fetchUserRatings(true); 
+  }
+
+  const songIds = featuredSongs.map((s) => s._id);
+  fetchAverageRatingsBulk(songIds);
+}, [featuredSongs, isSignedIn]);
+
+
 
   if (isLoading) return <FeaturedGridSkeleton />;
 

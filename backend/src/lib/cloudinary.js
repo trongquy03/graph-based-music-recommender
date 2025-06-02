@@ -46,7 +46,7 @@ export const uploadRawToCloudinary = async (filePath) => {
       resource_type: "raw",
       folder: "lyrics", // thư mục chứa .srt file
     });
-    console.log("📤 Uploaded to Cloudinary (raw):", result.secure_url);
+    console.log("Uploaded to Cloudinary (raw):", result.secure_url);
     return result.secure_url;
   } catch (err) {
     console.error(" Failed to upload raw file:", err);

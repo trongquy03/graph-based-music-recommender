@@ -32,6 +32,7 @@ export const getFeaturedSongs = async (req, res, next) => {
           title: 1,
           imageUrl: 1,
           audioUrl: 1,
+          lyricsUrl: 1,
           artist: {
             _id: "$artist._id",
             name: "$artist.name",
@@ -51,7 +52,7 @@ export const getMadeForYouSongs = async (req, res, next) => {
   const userId = req.auth?.userId || req.query.user; 
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-  const session = neo4jDriver.session(); // ✅ tạo session mới mỗi lần gọi
+  const session = neo4jDriver.session(); 
 
   try {
     const result = await session.run(
@@ -65,7 +66,9 @@ export const getMadeForYouSongs = async (req, res, next) => {
 
     const songIds = result.records.map((r) => r.get("songId"));
     const songs = await Song.find({ _id: { $in: songIds.map(id => new mongoose.Types.ObjectId(id)) } })
-                            .populate("artist");
+      .select("title artist imageUrl audioUrl lyricsUrl") 
+      .populate("artist", "name");
+
 
     const sorted = songIds.map(id => songs.find(s => s._id.toString() === id)).filter(Boolean);
 
@@ -74,7 +77,7 @@ export const getMadeForYouSongs = async (req, res, next) => {
     console.error("Graph recommendation error:", error);
     res.status(500).json({ message: "Failed to get recommendations" });
   } finally {
-    await session.close(); // ✅ đóng session sau khi xong
+    await session.close(); 
   }
 };
 
@@ -97,6 +100,7 @@ export const getTrendingSongs = async (req, res, next) => {
           title: 1,
           imageUrl: 1,
           audioUrl: 1,
+          lyricsUrl: 1,
           artist: {
             _id: "$artist._id",
             name: "$artist.name",

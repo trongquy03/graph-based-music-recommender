@@ -15,7 +15,7 @@ interface ArtistStore {
   isLoading: boolean;
   error: string | null;
 
-  fetchArtists: () => Promise<void>;
+  fetchArtists: (isSignedIn: boolean) => Promise<void>;
   updateArtist: (id: string, data: Partial<Artist>) => Promise<void>;
   deleteArtist: (id: string) => Promise<void>;
 
@@ -31,7 +31,7 @@ export const useArtistStore = create<ArtistStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchArtists: async () => {
+  fetchArtists: async (isSignedIn) => {
     set({ isLoading: true, error: null });
     try {
       const res = await axiosInstance.get("/artist");
@@ -39,10 +39,16 @@ export const useArtistStore = create<ArtistStore>((set, get) => ({
 
       const enrichedArtists = await Promise.all(
         rawArtists.map(async (artist: Artist) => {
-          const [isFollowingRes, followersCountRes] = await Promise.all([
-            get().isFollowing(artist._id),
-            get().fetchFollowersCount(artist._id),
-          ]);
+          let isFollowingRes = false;
+          if (isSignedIn) {
+            try {
+              isFollowingRes = await get().isFollowing(artist._id);
+            } catch {
+              isFollowingRes = false;
+            }
+          }
+
+          const followersCountRes = await get().fetchFollowersCount(artist._id);
           return {
             ...artist,
             isFollowing: isFollowingRes,
@@ -131,8 +137,7 @@ export const useArtistStore = create<ArtistStore>((set, get) => ({
       const res = await axiosInstance.get(`/artist/${artistId}/is-following`);
       return res.data.isFollowing;
     } catch (err: any) {
-      console.error("Failed to check follow status", err);
-      return false;
+      return false; // Silent fallback
     }
   },
 

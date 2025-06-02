@@ -488,7 +488,7 @@ export const uploadLyricsManually = async (req, res, next) => {
     if (!song) return res.status(404).json({ message: "Song not found" });
 
     // Tạo file tạm .srt
-    const tempDir = path.join(process.cwd(), "temp");
+    const tempDir = path.join(process.cwd(), "tmp");
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
     const filename = `lyrics-${uuidv4()}.srt`;

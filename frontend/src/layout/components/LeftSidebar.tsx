@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useArtistStore } from "@/stores/useArtistStore";
 import { SignedIn } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import {
   Clock,
   Heart,
@@ -15,15 +16,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const LeftSidebar = () => {
+  const { isSignedIn } = useAuth();
   const { artists, fetchArtists, fetchFollowersCount, isLoading } = useArtistStore();
   const [followersMap, setFollowersMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const load = async () => {
-      await fetchArtists();
+      await fetchArtists(isSignedIn ?? false);
     };
     load();
-  }, [fetchArtists]);
+  }, [fetchArtists, isSignedIn]);
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -61,7 +63,7 @@ const LeftSidebar = () => {
           </Link>
 
           <SignedIn>
-            <Link
+            {/* <Link
               to={"/chat"}
               className={cn(
                 buttonVariants({
@@ -72,7 +74,7 @@ const LeftSidebar = () => {
             >
               <MessageCircle className="mr-2 size-5 fill-white" />
               <span className="hidden md:inline">Messages</span>
-            </Link>
+            </Link> */}
 
             <Link
               to={"/liked-songs"}
@@ -134,7 +136,7 @@ const LeftSidebar = () => {
                     <div className="flex-1 min-w-0 hidden md:block">
                       <p className="font-medium truncate">{artist.name}</p>
                       <p className="text-sm text-zinc-400 truncate">
-                        {artist.followersCount ?? 0} followers
+                        {artist.followersCount ?? 0} người theo dõi
                       </p>
                     </div>
                   </Link>

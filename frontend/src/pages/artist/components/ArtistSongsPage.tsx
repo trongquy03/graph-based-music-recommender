@@ -1,4 +1,3 @@
-// File: ArtistSongsPage.tsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useMusicStore } from "@/stores/useMusicStore";
@@ -35,11 +34,17 @@ const ArtistSongsPage = () => {
     setArtistSongs(filtered);
   }, [songs, artistId]);
 
-  const handlePlayAll = () => {
-    if (artistSongs.length > 0) {
+const handlePlayAll = () => {
+  if (artistSongs.length > 0) {
+    const first = artistSongs[0];
+    if (currentSong?._id !== first._id) {
       playAlbum(artistSongs, 0);
+    } else {
+      togglePlay();
     }
-  };
+  }
+};
+
 
   const isCurrentArtistPlaying = artistSongs.some(song => song._id === currentSong?._id);
 

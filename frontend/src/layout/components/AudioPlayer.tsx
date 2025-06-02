@@ -1,6 +1,6 @@
+import { useEffect, useRef } from "react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { axiosInstance } from "@/lib/axios";
-import { useEffect, useRef } from "react";
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -8,19 +8,26 @@ const AudioPlayer = () => {
 
   const { currentSong, isPlaying, playNext, isLooping } = usePlayerStore();
 
-  // Ghi nhận lịch sử nghe
   const recordListening = async (songId: string) => {
     try {
       await axiosInstance.post("/history", { songId });
     } catch (error) {
-      console.error("Failed to record listening", error);
+      console.error("❌ Failed to record listening", error);
     }
   };
 
-  // Phát / tạm dừng khi trạng thái thay đổi
+  // Phát hoặc tạm dừng nhạc theo trạng thái `isPlaying`
   useEffect(() => {
-    if (isPlaying) audioRef.current?.play();
-    else audioRef.current?.pause();
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying && audio.src) {
+      audio.play().catch((err) => {
+        console.warn("⚠️ Play error:", err.message);
+      });
+    } else {
+      audio.pause();
+    }
   }, [isPlaying]);
 
   // Xử lý khi bài hát kết thúc
@@ -31,33 +38,42 @@ const AudioPlayer = () => {
     const handleEnded = () => {
       if (isLooping && currentSong) {
         audio.currentTime = 0;
-        audio.play();
+        audio.play().catch(() => {});
       } else {
         playNext();
       }
     };
 
     audio.addEventListener("ended", handleEnded);
-    return () => audio.removeEventListener("ended", handleEnded);
-  }, [playNext, isLooping, currentSong]);
+    return () => {
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [currentSong, isLooping, playNext]);
 
-  // Khi bài hát thay đổi, load source và ghi nhận
+  // Khi currentSong thay đổi: load source mới & play nếu cần
   useEffect(() => {
-    if (!audioRef.current || !currentSong) return;
-
     const audio = audioRef.current;
-    const isSongChange = prevSongRef.current !== currentSong.audioUrl;
+    if (!audio || !currentSong?.audioUrl) return;
 
-    if (isSongChange) {
-      audio.src = currentSong.audioUrl;
-      audio.currentTime = 0;
-      prevSongRef.current = currentSong.audioUrl;
+    const isNewSong = prevSongRef.current !== currentSong.audioUrl;
+    if (!isNewSong) return;
 
-      recordListening(currentSong._id); //  Ghi nhận lịch sử nghe
+    // Load bài hát mới
+    prevSongRef.current = currentSong.audioUrl;
+    audio.pause(); // Dừng bài trước
+    audio.src = currentSong.audioUrl;
+    audio.load(); // Bắt buộc gọi load()
+    audio.currentTime = 0;
 
-      if (isPlaying) audio.play();
+    recordListening(currentSong._id);
+
+    // Play nếu đang ở trạng thái `isPlaying`
+    if (isPlaying) {
+      audio.play().catch((err) => {
+        console.warn("⚠️ Failed to auto-play after source change:", err.message);
+      });
     }
-  }, [currentSong, isPlaying]);
+  }, [currentSong?.audioUrl]);
 
   return <audio ref={audioRef} />;
 };

@@ -28,20 +28,20 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isLooping: false,
   isShuffling: false,
 
-  initializeQueue: (songs: Song[]) => {
+  initializeQueue: (songs) => {
     set({
       queue: songs,
-      currentSong: get().currentSong || songs[0],
-      currentIndex: get().currentIndex === -1 ? 0 : get().currentIndex,
+      currentSong: songs[0] || null,
+      currentIndex: songs.length > 0 ? 0 : -1,
     });
   },
 
-  playAlbum: (songs: Song[], startIndex = 0) => {
-    if (songs.length === 0) return;
+  playAlbum: (songs, startIndex = 0) => {
+    if (!songs.length) return;
 
     const song = songs[startIndex];
     const socket = useChatStore.getState().socket;
-    if (socket.auth) {
+    if (socket?.auth?.userId) {
       socket.emit("update_activity", {
         userId: socket.auth.userId,
         activity: `Playing ${song.title} by ${song.artist}`,
@@ -56,78 +56,87 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     });
   },
 
-  setCurrentSong: (song: Song | null) => {
+  setCurrentSong: (song) => {
     if (!song) return;
 
+    const songIndex = get().queue.findIndex((s) => s._id === song._id);
     const socket = useChatStore.getState().socket;
-    if (socket.auth) {
+    if (socket?.auth?.userId) {
       socket.emit("update_activity", {
         userId: socket.auth.userId,
         activity: `Playing ${song.title} by ${song.artist}`,
       });
     }
 
-    const songIndex = get().queue.findIndex((s) => s._id === song._id);
     set({
       currentSong: song,
       isPlaying: true,
-      currentIndex: songIndex !== -1 ? songIndex : get().currentIndex,
+      currentIndex: songIndex !== -1 ? songIndex : 0,
     });
   },
 
   togglePlay: () => {
-    const willStartPlaying = !get().isPlaying;
-    const currentSong = get().currentSong;
+    const { isPlaying, currentSong } = get();
     const socket = useChatStore.getState().socket;
-    if (socket.auth) {
+    if (socket?.auth?.userId) {
       socket.emit("update_activity", {
         userId: socket.auth.userId,
-        activity:
-          willStartPlaying && currentSong
-            ? `Playing ${currentSong.title} by ${currentSong.artist}`
-            : "Idle",
+        activity: !isPlaying && currentSong
+          ? `Playing ${currentSong.title} by ${currentSong.artist}`
+          : "Idle",
       });
     }
 
-    set({ isPlaying: willStartPlaying });
+    set({ isPlaying: !isPlaying });
   },
 
   playNext: () => {
-    const { currentIndex, queue, isShuffling } = get();
+    const { queue, currentIndex, isShuffling } = get();
+
+    if (!queue.length) return;
+
+    let nextIndex = currentIndex + 1;
 
     if (isShuffling) {
-      const nextIndex = Math.floor(Math.random() * queue.length);
-      const nextSong = queue[nextIndex];
-      set({ currentIndex: nextIndex, currentSong: nextSong, isPlaying: true });
-      return;
+      nextIndex = Math.floor(Math.random() * queue.length);
     }
 
-    const nextIndex = currentIndex + 1;
     if (nextIndex < queue.length) {
-      const nextSong = queue[nextIndex];
-      set({ currentSong: nextSong, currentIndex: nextIndex, isPlaying: true });
+      set({
+        currentIndex: nextIndex,
+        currentSong: queue[nextIndex],
+        isPlaying: true,
+      });
     } else {
-      set({ isPlaying: false });
+      // Không dừng nữa, quay lại đầu playlist
+      set({
+        currentIndex: 0,
+        currentSong: queue[0],
+        isPlaying: true,
+      });
     }
   },
 
   playPrevious: () => {
-    const { currentIndex, queue } = get();
+    const { queue, currentIndex } = get();
+
     const prevIndex = currentIndex - 1;
 
     if (prevIndex >= 0) {
-      const prevSong = queue[prevIndex];
-      set({ currentSong: prevSong, currentIndex: prevIndex, isPlaying: true });
+      set({
+        currentIndex: prevIndex,
+        currentSong: queue[prevIndex],
+        isPlaying: true,
+      });
     } else {
-      set({ isPlaying: false });
+      set({
+        currentIndex: 0,
+        currentSong: queue[0],
+        isPlaying: true,
+      });
     }
   },
 
-  toggleLoop: () => {
-    set({ isLooping: !get().isLooping });
-  },
-
-  shuffleQueue: () => {
-    set({ isShuffling: !get().isShuffling });
-  },
+  toggleLoop: () => set({ isLooping: !get().isLooping }),
+  shuffleQueue: () => set({ isShuffling: !get().isShuffling }),
 }));
