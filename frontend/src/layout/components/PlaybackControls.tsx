@@ -8,9 +8,10 @@ import { usePlayerStore } from "@/stores/usePlayerStore";
 import { useRatingStore } from "@/stores/useRatingStore";
 import { useAuth } from "@clerk/clerk-react";
 import LyricKaraoke from "@/components/LyricKaraoke";
+import CommentPanel from "@/pages/comment/CommentPanel";
 import clsx from "clsx";
 import {
-  Laptop2,
+  MessageSquare,
   Mic2,
   Pause,
   Play,
@@ -45,7 +46,9 @@ export const PlaybackControls = () => {
     isLooping,
     isShuffling,
   } = usePlayerStore();
+  const [commentOpen, setCommentOpen] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const navigate = useNavigate();
   const { isSignedIn } = useAuth();
   const { likeCounts, fetchLikeCountBySongId } = useMusicStore();
@@ -143,13 +146,13 @@ useEffect(() => {
         className="w-14 h-14 object-cover rounded-md cursor-pointer hover:opacity-80 transition"
       />
 
-      <div className="flex-1 min-w-0">
-        {/* Tên bài hát - ❌ không click */}
-        <div className="font-medium truncate text-white">
-          {currentSong.title}
+      <div className="flex-1 min-w-0"> 
+          <div className="font-medium truncate text-white flex items-center gap-1">
+            {currentSong.title}
+            {currentSong.isPremium && (
+              <span className="bg-yellow-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded"> PREMIUM</span>
+            )}
         </div>
-
-        {/* Tên nghệ sĩ - ✅ có onClick */}
         <div
           className="text-sm text-zinc-400 truncate hover:underline cursor-pointer"
           onClick={() => navigate(`/artists/${currentSong.artist._id}`)}
@@ -317,9 +320,27 @@ useEffect(() => {
             <ListMusic className="h-4 w-4" />
           </Button> */}
 
-          <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
+          {/* <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
             <Laptop2 className="h-4 w-4" />
-          </Button>
+          </Button> */}
+
+      <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => document.dispatchEvent(new Event("toggle-comment-panel"))}
+          className={clsx(
+            "cursor-pointer transition-colors rounded-md", // bo góc để thấy nền
+            commentOpen
+              ? "bg-white/10 text-emerald-400" // nền mờ + chữ nổi
+              : "text-zinc-400 hover:text-white hover:bg-white/5" // nền nhẹ khi hover
+          )}
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+
+
+
+
 
           <div className="flex items-center gap-2">
             <Button
@@ -347,6 +368,10 @@ useEffect(() => {
         </div>
       </div>
     </footer>
+    {showComments && currentSong && (
+      <CommentPanel /> 
+    )}
+
 </div>
   );
 };

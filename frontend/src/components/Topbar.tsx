@@ -25,7 +25,6 @@ const Topbar = () => {
   const { isAdmin } = useAuthStore();
   const {
     isPremium,
-    subscriptionType,
     premiumUntil,
     fetchPremiumStatus,
   } = usePremiumStore();

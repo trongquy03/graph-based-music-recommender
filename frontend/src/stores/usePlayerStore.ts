@@ -10,6 +10,7 @@ interface PlayerStore {
   isLooping: boolean;
   isShuffling: boolean;
   isPlayingAd: boolean;
+  setIsPlaying: (value: boolean) => void;
   setIsPlayingAd: (value: boolean) => void;
 
   initializeQueue: (songs: Song[]) => void;
@@ -31,6 +32,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isLooping: false,
   isShuffling: false,
   isPlayingAd: false,
+  setIsPlaying: (value) => set({ isPlaying: value }),
   setIsPlayingAd: (value) => set({ isPlayingAd: value }),
 
   initializeQueue: (songs) => {

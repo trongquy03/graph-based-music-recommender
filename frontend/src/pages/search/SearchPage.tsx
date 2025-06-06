@@ -8,7 +8,6 @@ import { FollowButton } from "@/pages/artist/components/FollowButtonProps";
 import LikeButton from "@/pages/home/components/LikeButton";
 import { Play } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import Topbar from "@/components/Topbar";
 
 const TABS = ["tat-ca", "bai-hat", "album", "nghe-si"];
 

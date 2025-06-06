@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { usePremiumStore } from "@/stores/usePremiumStore";
 import { axiosInstance } from "@/lib/axios";
-import toast from "react-hot-toast";
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -17,6 +16,7 @@ const AudioPlayer = () => {
     playNext,
     isLooping,
     setIsPlayingAd,
+    setIsPlaying,
   } = usePlayerStore();
 
   const { isPremium } = usePremiumStore();
@@ -59,7 +59,6 @@ const AudioPlayer = () => {
         setSkipEnabled(false);
         setRemaining(10);
 
-        // Countdown skip
         const countdown = setInterval(() => {
           setRemaining((prev) => {
             if (prev <= 1) {
@@ -111,19 +110,22 @@ const AudioPlayer = () => {
 
     if (isPlaying) {
       audio.play().catch((err) => {
-        console.warn("⚠️ Failed to auto-play after source change:", err.message);
+        console.warn("Failed to auto-play after source change:", err.message);
       });
     }
   }, [currentSong?.audioUrl, isAdMode]);
+
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong || isPremium || !currentSong.isPremium) return;
 
     const timer = setInterval(() => {
-      if (audio.currentTime >= 15) {
+      if (audio.currentTime >= 30) {
         audio.pause();
-        toast.error("⛔ Đây là bài hát Premium. Vui lòng nâng cấp để nghe đầy đủ.");
+        audio.currentTime = 0;
+        setIsPlaying(false); 
+        
       }
     }, 500);
 
@@ -144,15 +146,13 @@ const AudioPlayer = () => {
 
   return (
     <>
-      {/* Banner quảng cáo toàn màn hình */}
       {isAdMode && (
-       <div className="fixed inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-md z-[9999] flex items-center justify-center">
-
+        <div className="fixed inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-md z-[9999] flex items-center justify-center">
           <div className="relative bg-white rounded-lg overflow-hidden w-[90%] max-w-4xl">
             <img src="/bannerAds.png" alt="Ad Banner" className="w-full h-auto" />
             <div className="absolute bottom-5 left-0 right-0 px-6 flex justify-between items-center">
               <button
-               onClick={() => window.open("/premium", "_blank")}
+                onClick={() => window.open("/premium", "_blank")}
                 className="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700"
               >
                 NÂNG CẤP NGAY
@@ -170,6 +170,21 @@ const AudioPlayer = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Thông báo cố định nếu chưa Premium */}
+      {currentSong?.isPremium && !isPremium && (
+        <div className="w-full bg-yellow-500 text-white text-center text-sm py-2 font-semibold fixed bottom-20 z-[9998]">
+          Nâng cấp tài khoản Premium để nghe trọn bài hát.{" "}
+          <a
+            href="/premium"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white"
+          >
+            Tìm hiểu ngay
+          </a>
         </div>
       )}
 
