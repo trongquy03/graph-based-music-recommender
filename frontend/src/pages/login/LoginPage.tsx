@@ -9,9 +9,7 @@ const SignInForm = () => {
   const { signIn, isLoaded } = useSignIn();
   if (!isLoaded) return null;
 
-/*************  ✨ Windsurf Command ⭐  *************/
     /**
-     * Handles the sign in flow for the given oauth strategy
      * @param strategy The oauth strategy to use. One of "oauth_google", "oauth_facebook", or "oauth_github"
      */
 /*******  1db6f77d-e4a2-4d35-9d27-458c0cfac12d  *******/  const handleSignIn = async (

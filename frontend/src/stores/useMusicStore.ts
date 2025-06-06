@@ -257,26 +257,31 @@ fetchAlbumsWithPagination: async (page = 1, limit = 20, search = "") => {
   },
 
   fetchLikedSongs: async () => {
-    const { hasFetchedLikes } = get();
-    if (hasFetchedLikes) return;
+  const { hasFetchedLikes } = get();
+  if (hasFetchedLikes) return;
 
-    set({ isLoading: true, error: null });
+  set({ isLoading: true, error: null });
 
-    try {
-      const response = await axiosInstance.get("/likes");
-      const likedIds = response.data.map((like: any) => like.song._id);
+  try {
+    const response = await axiosInstance.get("/likes");
 
-      set({
-        likedSongIds: likedIds,
-        hasFetchedLikes: true,
-      });
-    } catch (error: any) {
-      toast.error("Failed to load liked songs");
-      set({ error: error.message });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+  
+    const likedIds = response.data
+      .map((like: any) => like.song?._id?.toString())
+      .filter(Boolean); // loại undefined/null
+
+    set({
+      likedSongIds: likedIds,
+      hasFetchedLikes: true,
+    });
+  } catch (error: any) {
+    toast.error("Failed to load liked songs");
+    set({ error: error.message });
+  } finally {
+    set({ isLoading: false });
+  }
+},
+
 
 fetchLikeCountBySongId: async (songId: string) => {
   try {
@@ -330,21 +335,26 @@ fetchListeningHistory: async () => {
   },
 
   unlikeSong: async (songId) => {
-    try {
-      await axiosInstance.post("/likes/unlike", { songId });
-      const likeCount = await fetchLikeCount(songId);
-      set((state) => ({
-        likedSongIds: state.likedSongIds.filter((id) => id !== songId),
-        likeCounts: {
-          ...state.likeCounts,
-          [songId]: likeCount,
-        },
-      }));
-      toast.success("Đã bỏ thích bài hát");
-    } catch (error: any) {
-      toast.error("Failed to unlike song");
-    }
-  },
+  try {
+    await axiosInstance.post("/likes/unlike", { songId });
+
+
+    await get().fetchLikedSongs();
+
+    const likeCount = await fetchLikeCount(songId);
+    set((state) => ({
+      likedSongIds: state.likedSongIds.filter((id) => id !== songId),
+      likeCounts: {
+        ...state.likeCounts,
+        [songId]: likeCount,
+      },
+    }));
+
+    toast.success("Đã bỏ thích bài hát");
+  } catch (error: any) {
+    toast.error("Failed to unlike song");
+  }
+},
 
   resetLikes: () => {
     set({ likedSongIds: [], hasFetchedLikes: false });

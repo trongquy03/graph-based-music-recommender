@@ -9,6 +9,8 @@ interface PlayerStore {
   currentIndex: number;
   isLooping: boolean;
   isShuffling: boolean;
+  isPlayingAd: boolean;
+  setIsPlayingAd: (value: boolean) => void;
 
   initializeQueue: (songs: Song[]) => void;
   playAlbum: (songs: Song[], startIndex?: number) => void;
@@ -18,6 +20,7 @@ interface PlayerStore {
   playPrevious: () => void;
   toggleLoop: () => void;
   shuffleQueue: () => void;
+  setAdPlaying: (val: boolean) => void;
 }
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
@@ -27,6 +30,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   currentIndex: -1,
   isLooping: false,
   isShuffling: false,
+  isPlayingAd: false,
+  setIsPlayingAd: (value) => set({ isPlayingAd: value }),
 
   initializeQueue: (songs) => {
     set({
@@ -102,16 +107,34 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
 
     if (nextIndex < queue.length) {
+      const nextSong = queue[nextIndex];
+      const socket = useChatStore.getState().socket;
+      if (socket?.auth?.userId) {
+        socket.emit("update_activity", {
+          userId: socket.auth.userId,
+          activity: `Playing ${nextSong.title} by ${nextSong.artist}`,
+        });
+      }
+
       set({
         currentIndex: nextIndex,
-        currentSong: queue[nextIndex],
+        currentSong: nextSong,
         isPlaying: true,
       });
     } else {
-      // Không dừng nữa, quay lại đầu playlist
+      // Loop playlist về đầu
+      const song = queue[0];
+      const socket = useChatStore.getState().socket;
+      if (socket?.auth?.userId) {
+        socket.emit("update_activity", {
+          userId: socket.auth.userId,
+          activity: `Playing ${song.title} by ${song.artist}`,
+        });
+      }
+
       set({
         currentIndex: 0,
-        currentSong: queue[0],
+        currentSong: song,
         isPlaying: true,
       });
     }
@@ -119,7 +142,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   playPrevious: () => {
     const { queue, currentIndex } = get();
-
     const prevIndex = currentIndex - 1;
 
     if (prevIndex >= 0) {
@@ -138,5 +160,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
 
   toggleLoop: () => set({ isLooping: !get().isLooping }),
+
   shuffleQueue: () => set({ isShuffling: !get().isShuffling }),
+
+  setAdPlaying: (val) => set({ isPlayingAd: val }),
 }));

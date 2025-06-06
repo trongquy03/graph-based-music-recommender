@@ -47,3 +47,35 @@ export const getMessages = async (req, res, next) => {
 		next(error);
 	}
 };
+
+export const getPremiumStatus = async (req, res) => {
+  const userId = req.auth.userId;
+
+  try {
+    const user = await User.findOne({ clerkId: userId });
+
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    const now = new Date();
+    let isPremium = user.isPremium;
+
+    // Nếu đã hết hạn → cập nhật lại luôn trong DB
+    if (user.premiumUntil && new Date(user.premiumUntil) < now) {
+      isPremium = false;
+
+      // Cập nhật trạng thái user
+      user.isPremium = false;
+      user.subscriptionType = "free";
+      await user.save(); 
+    }
+
+    return res.json({
+      isPremium,
+      subscriptionType: user.subscriptionType,
+      premiumUntil: user.premiumUntil,
+    });
+  } catch (err) {
+    console.error("Lỗi getPremiumStatus", err);
+    res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+};

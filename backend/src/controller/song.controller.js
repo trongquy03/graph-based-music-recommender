@@ -1,4 +1,5 @@
 import { Song } from "../models/song.model.js";
+import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 import { neo4jDriver } from "../lib/db.js";
 
@@ -7,7 +8,7 @@ export const getAllSongs = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-    const { search, artist } = req.query; // 👈 nếu có truyền artist filter
+    const { search, artist } = req.query; 
 
     const pipeline = [];
 
@@ -53,6 +54,7 @@ export const getAllSongs = async (req, res, next) => {
         audioUrl: 1,
         lyricsUrl: 1,
         createdAt: 1,
+        isPremium: 1,
         artist: {
           _id: "$artist._id",
           name: "$artist.name",
@@ -96,6 +98,7 @@ export const getFeaturedSongs = async (req, res, next) => {
           imageUrl: 1,
           audioUrl: 1,
           lyricsUrl: 1,
+          isPremium: 1,
           artist: {
             _id: "$artist._id",
             name: "$artist.name",
@@ -129,7 +132,7 @@ export const getMadeForYouSongs = async (req, res, next) => {
 
     const songIds = result.records.map((r) => r.get("songId"));
     const songs = await Song.find({ _id: { $in: songIds.map(id => new mongoose.Types.ObjectId(id)) } })
-      .select("title artist imageUrl audioUrl lyricsUrl") 
+      .select("title artist imageUrl audioUrl lyricsUrl isPremium") 
       .populate("artist", "name");
 
 
@@ -164,6 +167,7 @@ export const getTrendingSongs = async (req, res, next) => {
           imageUrl: 1,
           audioUrl: 1,
           lyricsUrl: 1,
+          isPremium: 1,
           artist: {
             _id: "$artist._id",
             name: "$artist.name",
@@ -175,5 +179,51 @@ export const getTrendingSongs = async (req, res, next) => {
     res.json(songs);
   } catch (error) {
     next(error);
+  }
+};
+
+export const streamSong = async (req, res) => {
+  const userId = req.auth.userId;
+  const { id: songId } = req.params;
+
+  try {
+    const song = await Song.findById(songId);
+    if (!song) return res.status(404).json({ message: "Không tìm thấy bài hát." });
+
+    const user = await User.findOne({ clerkId: userId });
+    if (!user) return res.status(401).json({ message: "Người dùng không tồn tại." });
+
+    // Nếu user từng là Premium nhưng đã hết hạn
+    if (user.isPremium && user.premiumUntil && new Date(user.premiumUntil) < new Date()) {
+      user.isPremium = false;
+      user.subscriptionType = "free";
+      await user.save();
+    }
+
+    // Nếu bài hát yêu cầu Premium và user không phải Premium
+    if (song.isPremium && !user.isPremium) {
+      return res.status(403).json({ message: "Bài hát này yêu cầu tài khoản Premium." });
+    }
+
+    // Nếu user không Premium => trả preview + quảng cáo
+    if (!user.isPremium) {
+      return res.json({
+        previewUrl: song.audioUrl,
+        showAds: true,
+        adAudioUrl: "/songs/ads.mp3",
+      });
+    }
+
+    // Nếu là Premium
+    return res.json({
+      fullAudioUrl: song.audioUrl,
+      isPremium: song.isPremium,
+      isUserPremium: user.isPremium,
+    });
+
+
+  } catch (err) {
+    console.error("Lỗi streamSong:", err.message);
+    res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };

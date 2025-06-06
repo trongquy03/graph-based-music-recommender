@@ -17,7 +17,9 @@ import SearchPage from "./pages/search/SearchPage";
 import ArtistPage from "./pages/artist/ArtistPage";
 import ArtistDetailPage from "./pages/artist/ArtistDetailPage";
 import ArtistSongsPage from "./pages/artist/components/ArtistSongsPage";
-
+import PremiumPage from "./pages/premium/PremiumPage";
+import PremiumSuccessPage from "./pages/premium/components/PremiumSuccessPage";
+import PremiumCancelPage from "./pages/premium/components/PremiumCancelPage";
 function App() {
   return (
     <>
@@ -26,7 +28,9 @@ function App() {
       <Route path="/auth-callback" element={<AuthCallbackPage/>} />
       <Route path="/admin" element={<AdminPage/>} />
       <Route path="/login" element={<LoginPage/>} />
-
+      <Route path="/premium" element={<PremiumPage />} />
+      <Route path="/premium-success" element={<PremiumSuccessPage />} />
+      <Route path="/premium-cancel" element={<PremiumCancelPage />} />
       <Route element={<MainLayout/>}>
           <Route path="/" element={<HomePage/>} /> 
           <Route path="/chat" element={<ChatPage/>} />

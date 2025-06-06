@@ -134,7 +134,15 @@ const AlbumPage = () => {
                                             <img src={song.imageUrl} alt={song.title}
                                             className="size-10" />
                                             <div>
-												<div className={`font-medium text-white`}>{song.title}</div>
+												<div className="flex items-center gap-2">
+                                                        <div className="font-medium text-white">{song.title}</div>
+                                                        {song.isPremium && (
+                                                            <span className="bg-yellow-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded">
+                                                            PREMIUM
+                                                            </span>
+                                                        )}
+                                                        </div>
+
 												<div>{typeof song.artist === "object" ? song.artist.name : song.artist}</div>
 
 											</div>

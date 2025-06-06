@@ -122,7 +122,14 @@ const SearchPage = () => {
                       </div>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <p className="font-medium truncate text-white">{song.title}</p>
+                     <div className="flex items-center gap-2">
+                        <p className="font-medium truncate text-white">{song.title}</p>
+                        {song.isPremium && (
+                          <span className="bg-yellow-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded">
+                            PREMIUM
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-zinc-400 truncate">
                         {typeof song.artist === "object" ? song.artist.name : song.artist}
                       </p>

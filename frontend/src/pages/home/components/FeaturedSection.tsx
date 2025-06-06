@@ -70,12 +70,20 @@ useEffect(() => {
 
           <div className="flex-1 p-4 overflow-hidden">
             <div className="relative overflow-hidden max-w-full">
+              <div className="flex items-center gap-2 max-w-[180px]">
               <p
                 className="font-medium whitespace-nowrap overflow-hidden text-ellipsis 
-                max-w-[180px] group-hover:animate-marquee"
+                group-hover:animate-marquee"
               >
                 {song.title}
               </p>
+
+              {song.isPremium && (
+                <span className="bg-yellow-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded">
+                  PREMIUM
+                </span>
+              )}
+            </div>
             </div>
             <p className="text-sm text-zinc-400 truncate">
             {typeof song.artist === "object" && song.artist !== null

@@ -1,81 +1,181 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
+import { usePremiumStore } from "@/stores/usePremiumStore";
 import { axiosInstance } from "@/lib/axios";
+import toast from "react-hot-toast";
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const prevSongRef = useRef<string | null>(null);
+  const [isAdMode, setIsAdMode] = useState(false);
+  const [remaining, setRemaining] = useState(10);
+  const [skipEnabled, setSkipEnabled] = useState(false);
 
-  const { currentSong, isPlaying, playNext, isLooping } = usePlayerStore();
+  const {
+    currentSong,
+    isPlaying,
+    playNext,
+    isLooping,
+    setIsPlayingAd,
+  } = usePlayerStore();
+
+  const { isPremium } = usePremiumStore();
 
   const recordListening = async (songId: string) => {
     try {
       await axiosInstance.post("/history", { songId });
     } catch (error) {
-      console.error("❌ Failed to record listening", error);
+      console.error("Failed to record listening", error);
     }
   };
 
-  // Phát hoặc tạm dừng nhạc theo trạng thái `isPlaying`
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     if (isPlaying && audio.src) {
       audio.play().catch((err) => {
-        console.warn("⚠️ Play error:", err.message);
+        console.warn("Play error:", err.message);
       });
     } else {
       audio.pause();
     }
   }, [isPlaying]);
 
-  // Xử lý khi bài hát kết thúc
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleEnded = () => {
-      if (isLooping && currentSong) {
+      if (isLooping && currentSong && !isAdMode) {
         audio.currentTime = 0;
         audio.play().catch(() => {});
-      } else {
-        playNext();
+        return;
       }
+
+      if (!isPremium && !isAdMode) {
+        setIsPlayingAd(true);
+        setIsAdMode(true);
+        setSkipEnabled(false);
+        setRemaining(10);
+
+        // Countdown skip
+        const countdown = setInterval(() => {
+          setRemaining((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdown);
+              setSkipEnabled(true);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
+        audio.src = "/songs/ads.mp3";
+        audio.load();
+        audio.play().catch(() => {});
+        return;
+      }
+
+      if (isAdMode) {
+        setIsAdMode(false);
+        setIsPlayingAd(false);
+        setSkipEnabled(false);
+        playNext();
+        return;
+      }
+
+      playNext();
     };
 
     audio.addEventListener("ended", handleEnded);
     return () => {
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [currentSong, isLooping, playNext]);
+  }, [currentSong, isLooping, isPremium, isAdMode]);
 
-  // Khi currentSong thay đổi: load source mới & play nếu cần
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !currentSong?.audioUrl) return;
+    if (!audio || !currentSong?.audioUrl || isAdMode) return;
 
     const isNewSong = prevSongRef.current !== currentSong.audioUrl;
     if (!isNewSong) return;
 
-    // Load bài hát mới
     prevSongRef.current = currentSong.audioUrl;
-    audio.pause(); // Dừng bài trước
+    audio.pause();
     audio.src = currentSong.audioUrl;
-    audio.load(); // Bắt buộc gọi load()
+    audio.load();
     audio.currentTime = 0;
 
     recordListening(currentSong._id);
 
-    // Play nếu đang ở trạng thái `isPlaying`
     if (isPlaying) {
       audio.play().catch((err) => {
         console.warn("⚠️ Failed to auto-play after source change:", err.message);
       });
     }
-  }, [currentSong?.audioUrl]);
+  }, [currentSong?.audioUrl, isAdMode]);
 
-  return <audio ref={audioRef} />;
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !currentSong || isPremium || !currentSong.isPremium) return;
+
+    const timer = setInterval(() => {
+      if (audio.currentTime >= 15) {
+        audio.pause();
+        toast.error("⛔ Đây là bài hát Premium. Vui lòng nâng cấp để nghe đầy đủ.");
+      }
+    }, 500);
+
+    return () => clearInterval(timer);
+  }, [currentSong, isPremium]);
+
+  const skipAd = () => {
+    if (!skipEnabled) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.pause();
+    setIsAdMode(false);
+    setIsPlayingAd(false);
+    setSkipEnabled(false);
+    playNext();
+  };
+
+  return (
+    <>
+      {/* Banner quảng cáo toàn màn hình */}
+      {isAdMode && (
+       <div className="fixed inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-md z-[9999] flex items-center justify-center">
+
+          <div className="relative bg-white rounded-lg overflow-hidden w-[90%] max-w-4xl">
+            <img src="/bannerAds.png" alt="Ad Banner" className="w-full h-auto" />
+            <div className="absolute bottom-5 left-0 right-0 px-6 flex justify-between items-center">
+              <button
+               onClick={() => window.open("/premium", "_blank")}
+                className="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700"
+              >
+                NÂNG CẤP NGAY
+              </button>
+              <button
+                onClick={skipAd}
+                disabled={!skipEnabled}
+                className={`px-5 py-2 rounded-lg text-white font-semibold transition ${
+                  skipEnabled
+                    ? "bg-gray-800 hover:bg-gray-900"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
+              >
+                {skipEnabled ? "Bỏ qua quảng cáo" : `Chờ ${remaining}s...`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <audio ref={audioRef} />
+    </>
+  );
 };
 
 export default AudioPlayer;

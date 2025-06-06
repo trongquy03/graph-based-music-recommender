@@ -95,7 +95,14 @@ const ArtistSongsPage = () => {
                     </div>
                   </div>
                   <div className="text-white">
-                    <div className="font-medium truncate">{song.title}</div>
+                   <div className="flex items-center gap-2">
+                      <div className="font-medium truncate">{song.title}</div>
+                      {song.isPremium && (
+                        <span className="bg-yellow-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded">
+                          PREMIUM
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-zinc-400 truncate">
                       {typeof song.artist === "object"
                         ? song.artist.name

@@ -85,7 +85,15 @@ const SectionGrid = ({ songs, title, isLoading }: SectionGridProps) => {
               <PlayButton song={song} />
             </div>
 
-            <h3 className="font-medium mb-2 truncate">{song.title}</h3>
+            <div className="flex items-center gap-2 mb-2 truncate">
+                <h3 className="font-medium truncate">{song.title}</h3>
+                {song.isPremium && (
+                  <span className="bg-yellow-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded">
+                    PREMIUM
+                  </span>
+                )}
+              </div>
+
             <p className="text-sm text-zinc-400 truncate">
               {typeof song.artist === "object" ? song.artist.name : song.artist}
             </p>

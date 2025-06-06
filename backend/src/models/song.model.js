@@ -47,6 +47,7 @@ const songSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  isPremium: Boolean,
   featured: { type: Boolean, default: false },
 }, { timestamps: true });
 

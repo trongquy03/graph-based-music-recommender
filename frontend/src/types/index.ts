@@ -22,6 +22,7 @@ export interface Song {
     imageUrl: string;
     audioUrl: string;
     duration: number;
+    isPremium: boolean;
     createdAt: string;
     updatedAt: string;
     avgRating: number;
@@ -58,3 +59,5 @@ export interface User {
 	fullName: string;
 	imageUrl: string;
 }
+
+export * from "./clerk"; 

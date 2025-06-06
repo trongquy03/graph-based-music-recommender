@@ -16,6 +16,9 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    isPremium: { type: Boolean, default: false },
+    premiumUntil: { type: Date },
+    subscriptionType: { type: String, enum: ["free", "7days", "1month", "1year"], default: "free" }
 },
  {timestamps: true}
 );

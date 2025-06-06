@@ -4,8 +4,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { useRatingStore } from "@/stores/useRatingStore";
-import {  Heart, Pause, Play, Star } from "lucide-react";
-import { useEffect } from "react";
+import { Heart, Pause, Play, Star } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Song } from "@/types";
+
 
 export const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -23,24 +25,35 @@ const LikedSongsPage = () => {
   } = useMusicStore();
 
   const {
-      getAverageRatingForSong,
-      getUserRatingForSong,
-    } = useRatingStore();
+    getAverageRatingForSong,
+    getUserRatingForSong,
+  } = useRatingStore();
 
   const {
     currentSong,
     isPlaying,
     togglePlay,
     playAlbum,
-    
   } = usePlayerStore();
 
-  useEffect(() => {
-    fetchSongs();
-    fetchLikedSongs();
-  }, [fetchSongs, fetchLikedSongs]);
+  const [likedSongs, setLikedSongs] = useState<Song[]>([]);
 
-  const likedSongs = songs.filter((song) => likedSongIds.includes(song._id));
+  // ✅ Gọi fetchSongs trước, sau đó mới fetchLikedSongs
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchSongs();     // phải có songs trước
+      await fetchLikedSongs(); // rồi mới lấy danh sách đã like
+    };
+    fetchData();
+  }, []);
+
+  // Đồng bộ likedSongs sau khi có cả songs và likedSongIds
+  useEffect(() => {
+  if (!likedSongIds.length || !songs.length) return;
+  const filtered = songs.filter((s) => likedSongIds.includes(s._id.toString()));
+  setLikedSongs(filtered);
+}, [songs, likedSongIds]);
+
 
   const handlePlayLiked = () => {
     if (likedSongs.length === 0) return;
@@ -112,12 +125,11 @@ const LikedSongsPage = () => {
               >
                 <div>#</div>
                 <div>Tiêu đề</div>
-                <div >
+                <div>
                   <Star className=" h-5 w-5 fill-yellow-500" />
                 </div>
-
                 <div className="flex items-center justify-end pr-4">
-                    <Heart className="h-5 w-5 fill-red-500 text-red-500" />
+                  <Heart className="h-5 w-5 fill-red-500 text-red-500" />
                 </div>
               </div>
 
@@ -154,11 +166,14 @@ const LikedSongsPage = () => {
                             <div>{typeof song.artist === "object" ? song.artist.name : song.artist}</div>
                           </div>
                         </div>
+
                         <div className="flex items-center">
-                           <div className="flex items-center gap-1 mt-1 text-[15px] ">
+                          <div className="flex items-center gap-1 mt-1 text-[15px]">
                             <Star
                               className={`w-3.5 h-3.5 ${
-                                getUserRatingForSong(song._id) ? "fill-yellow-400 text-yellow-400" : "fill-white text-white"
+                                getUserRatingForSong(song._id)
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "fill-white text-white"
                               }`}
                             />
                             <span className="text-white">
@@ -178,7 +193,6 @@ const LikedSongsPage = () => {
                             <Heart className="fill-red-500 h-5 w-5" />
                           </Button>
                         </div>
-                        
                       </div>
                     );
                   })}
@@ -193,5 +207,3 @@ const LikedSongsPage = () => {
 };
 
 export default LikedSongsPage;
-
-
