@@ -1,7 +1,8 @@
 import { User } from "../models/user.model.js";
-import { neo4jSession } from "../lib/db.js";
+import { neo4jDriver } from "../lib/db.js";
 
 export const authCallback = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { id, firstName, lastName, imageUrl } = req.body;
 
@@ -15,7 +16,7 @@ export const authCallback = async (req, res, next) => {
       });
 
       // Thêm vào Neo4j
-      await neo4jSession.run(
+      await session.run(
         `MERGE (u:User {id: $id})
          SET u.name = $name, u.imageUrl = $imageUrl`,
         {

@@ -17,4 +17,21 @@ export const neo4jDriver = neo4j.driver(
   neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
 );
 
-export const neo4jSession = neo4jDriver.session();
+export const neo4jLocal = neo4j.driver(
+  process.env.NEO4J_LOCAL_URI,
+  neo4j.auth.basic(process.env.NEO4J_LOCAL_USERNAME, process.env.NEO4J_LOCAL_PASSWORD)
+);
+
+// lib/neo4j.js hoặc db.js
+export const getAuraSession = () => {
+  if (neo4jDriver._closed) throw new Error("Neo4j Aura driver is closed.");
+  return neo4jDriver.session();
+};
+
+export const getLocalSession = () => {
+  if (neo4jLocal._closed) throw new Error("Neo4j Local driver is closed.");
+  return neo4jLocal.session();
+};
+
+
+

@@ -72,9 +72,17 @@ app.use("/api/cloudinary", cloudinaryRoutes);
 
 
 // error handle
-app.use((err,req,res,next) => {
-    res.status(500).json({message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message});
-})
+app.use((err, req, res, next) => {
+    if (res.headersSent) {
+        return next(err); 
+    }
+    res.status(500).json({
+        message: process.env.NODE_ENV === "production"
+            ? "Internal server error"
+            : err.message
+    });
+});
+
 httpServer.listen(PORT, () => {
     console.log("Server is running on port " + PORT);
     connectDB();

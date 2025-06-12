@@ -1,7 +1,7 @@
 import { Song } from "../models/song.model.js";
 import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
-import { neo4jDriver } from "../lib/db.js";
+import { neo4jLocal  } from "../lib/db.js";
 
 export const getAllSongs = async (req, res, next) => {
   try {
@@ -114,38 +114,103 @@ export const getFeaturedSongs = async (req, res, next) => {
   }
 };
 
-export const getMadeForYouSongs = async (req, res, next) => {
-  const userId = req.auth?.userId || req.query.user; 
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+// export const getMadeForYouSongs = async (req, res, next) => {
+//   const userId = req.auth?.userId || req.query.user; 
+//   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-  const session = neo4jDriver.session(); 
+//   const session = neo4jDriver.session(); 
+
+//   try {
+//     const result = await session.run(
+//       `MATCH (u:User {id: $userId})-[:LISTENED|LIKES|RATED]->(s:Song)<-[:LISTENED|LIKES|RATED]-(other:User)
+//        MATCH (other)-[:LISTENED|LIKES|RATED]->(rec:Song)
+//        WHERE NOT (u)-[:LIKES|RATED]->(rec)
+//        RETURN DISTINCT rec.id AS songId
+//        LIMIT 15`,
+//       { userId }
+//     );
+
+//     const songIds = result.records.map((r) => r.get("songId"));
+//     const songs = await Song.find({ _id: { $in: songIds.map(id => new mongoose.Types.ObjectId(id)) } })
+//       .select("title artist imageUrl audioUrl lyricsUrl isPremium") 
+//       .populate("artist", "name");
+
+
+//     const sorted = songIds.map(id => songs.find(s => s._id.toString() === id)).filter(Boolean);
+
+//     res.status(200).json(sorted);
+//   } catch (error) {
+//     console.error("Graph recommendation error:", error);
+//     res.status(500).json({ message: "Failed to get recommendations" });
+//   } finally {
+//     await session.close(); 
+//   }
+// };
+
+export const getMadeForYouSongs = async (req, res) => {
+  const session = neo4jLocal.session();
 
   try {
-    const result = await session.run(
-      `MATCH (u:User {id: $userId})-[:LISTENED|LIKES|RATED]->(s:Song)<-[:LISTENED|LIKES|RATED]-(other:User)
-       MATCH (other)-[:LISTENED|LIKES|RATED]->(rec:Song)
-       WHERE NOT (u)-[:LIKES|RATED]->(rec)
-       RETURN DISTINCT rec.id AS songId
-       LIMIT 15`,
-      { userId }
-    );
+    const userResult = await session.run(`
+      MATCH (u:User)
+      WITH u ORDER BY rand()
+      LIMIT 1
+      RETURN u.id AS userId
+    `);
 
-    const songIds = result.records.map((r) => r.get("songId"));
-    const songs = await Song.find({ _id: { $in: songIds.map(id => new mongoose.Types.ObjectId(id)) } })
-      .select("title artist imageUrl audioUrl lyricsUrl isPremium") 
-      .populate("artist", "name");
+    const neo4jUserId = userResult.records[0]?.get("userId");
+    if (!neo4jUserId) {
+      return res.status(404).json({ message: "Không tìm thấy user Neo4j" });
+    }
+
+    const recommendationsResult = await session.run(`
+      MATCH (u:User {id: $neo4jUserId})-[:RECOMMENDED]->(s:Song)
+      RETURN s.title AS title
+    `, { neo4jUserId });
+
+    const recommendedTitles = recommendationsResult.records.map(r => r.get("title"));
+    if (!recommendedTitles.length) return res.status(200).json([]);
+
+    const allSongs = await Song.find()
+    .select("_id title imageUrl audioUrl lyricsUrl isPremium artist")
+    .populate("artist", "name");
+
+    // Tránh trùng lặp audioUrl
+    const usedAudioUrls = new Set();
+    const madeForYou = [];
+
+    const usedSongIds = new Set();
+
+    for (const title of recommendedTitles) {
+      const candidates = allSongs.filter(song => !usedSongIds.has(song._id));
+      if (candidates.length === 0) break;
+
+      const picked = candidates[Math.floor(Math.random() * candidates.length)];
+      usedSongIds.add(picked._id);
+
+      madeForYou.push({
+        _id: picked._id,  // <<< RẤT QUAN TRỌNG
+        title,
+        imageUrl: picked.imageUrl,
+        audioUrl: picked.audioUrl,
+        lyricsUrl: picked.lyricsUrl,
+        isPremium: picked.isPremium,
+        artist: picked.artist,
+      });
+    }
 
 
-    const sorted = songIds.map(id => songs.find(s => s._id.toString() === id)).filter(Boolean);
-
-    res.status(200).json(sorted);
+    return res.status(200).json(madeForYou);
   } catch (error) {
-    console.error("Graph recommendation error:", error);
-    res.status(500).json({ message: "Failed to get recommendations" });
+    console.error("getMadeForYouSongs error:", error.message);
+    if (!res.headersSent) {
+      return res.status(500).json({ message: "Lỗi lấy gợi ý" });
+    }
   } finally {
-    await session.close(); 
+    await session.close();
   }
 };
+
 
 export const getTrendingSongs = async (req, res, next) => {
   try {

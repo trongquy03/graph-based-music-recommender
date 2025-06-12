@@ -1,6 +1,7 @@
 import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
-import { neo4jSession } from "../lib/db.js";
+import { neo4jDriver } from "../lib/db.js";
+
 
 // Get all artists
 export const getAllArtists = async (req, res, next) => {
@@ -48,6 +49,7 @@ export const getArtistById = async (req, res, next) => {
 
 // Follow Artist
 export const followArtist = async (req, res) => {
+  const session = neo4jDriver.session();
   const { artistId } = req.params;
   const userId = req.auth?.userId;
 
@@ -66,7 +68,7 @@ export const followArtist = async (req, res) => {
       { $addToSet: { followedArtists: artist._id } }
     );
 
-    await neo4jSession.run(
+    await session.run(
       `MERGE (u:User {id: $userId})
        MERGE (a:Artist {id: $artistId})
        MERGE (u)-[:FOLLOWS]->(a)`,
@@ -77,11 +79,14 @@ export const followArtist = async (req, res) => {
   } catch (error) {
     console.error("Error following artist:", error);
     res.status(500).json({ message: "Server error" });
+  } finally {
+    await session.close();
   }
 };
 
 // Unfollow Artist
 export const unfollowArtist = async (req, res) => {
+  const session = neo4jDriver.session();
   const { artistId } = req.params;
   const userId = req.auth?.userId;
 
@@ -100,7 +105,7 @@ export const unfollowArtist = async (req, res) => {
       { $pull: { followedArtists: artist._id } }
     );
 
-    await neo4jSession.run(
+    await session.run(
       `MATCH (u:User {id: $userId})-[r:FOLLOWS]->(a:Artist {id: $artistId})
        DELETE r`,
       { userId, artistId }
@@ -110,6 +115,8 @@ export const unfollowArtist = async (req, res) => {
   } catch (error) {
     console.error("Error unfollowing artist:", error);
     res.status(500).json({ message: "Server error" });
+  } finally {
+    await session.close();
   }
 };
 
@@ -144,7 +151,7 @@ export const isFollowingArtist = async (req, res) => {
   } catch (error) {
     console.error("Error checking follow status:", error);
     res.status(500).json({ message: "Server error" });
-  }
+  } 
 };
 
 // Get all artists the user is following

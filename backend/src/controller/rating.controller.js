@@ -1,6 +1,6 @@
 import { Rating } from "../models/rating.model.js";
 import mongoose from "mongoose";
-import { neo4jSession } from "../lib/db.js";
+import { neo4jDriver } from "../lib/db.js";
 
 // Get all ratings by current user
 export const getRatings = async (req, res, next) => {
@@ -18,6 +18,7 @@ export const getRatings = async (req, res, next) => {
 
 // Rate, update, or delete (if rating = 0)
 export const rateSong = async (req, res) => {
+  const session = neo4jDriver.session();
   const userId = req.auth.userId;
   const { songId, rating } = req.body;
 
@@ -34,7 +35,7 @@ export const rateSong = async (req, res) => {
       await Rating.findOneAndDelete({ user: userId, song: songId });
 
        // Xoá quan hệ RATED trong Neo4j
-      await neo4jSession.run(
+      await session.run(
         `MATCH (u:User {id: $userId})-[r:RATED]->(s:Song {id: $songId}) DELETE r`,
         { userId, songId }
       );
@@ -53,7 +54,7 @@ export const rateSong = async (req, res) => {
       await existing.save();
 
        // Cập nhật quan hệ RATED
-      await neo4jSession.run(
+      await session.run(
         `MERGE (u:User {id: $userId})
          MERGE (s:Song {id: $songId})
          MERGE (u)-[r:RATED]->(s)
@@ -68,7 +69,7 @@ export const rateSong = async (req, res) => {
     await newRating.save();
 
     // Tạo quan hệ RATED mới trong Neo4j
-    await neo4jSession.run(
+    await session.run(
       `MERGE (u:User {id: $userId})
        MERGE (s:Song {id: $songId})
        MERGE (u)-[r:RATED]->(s)
@@ -79,6 +80,8 @@ export const rateSong = async (req, res) => {
     res.status(201).json({ message: "Song rated successfully." });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  } finally {
+    await session.close();
   }
 };
 
@@ -110,11 +113,12 @@ export const getAverageRating = async (req, res) => {
     res.status(200).json({ average, totalRatings });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
+  } 
 };
 
 // Explicit delete rating if needed
 export const deleteRating = async (req, res) => {
+  const session = neo4jDriver.session();
   const userId = req.auth.userId;
   const { songId } = req.body;
 
@@ -125,12 +129,14 @@ export const deleteRating = async (req, res) => {
   try {
     await Rating.findOneAndDelete({ user: userId, song: songId });
 
-     await neo4jSession.run(
+     await session.run(
       `MATCH (u:User {id: $userId})-[r:RATED]->(s:Song {id: $songId}) DELETE r`,
       { userId, songId }
     );
     res.status(200).json({ message: "Rating deleted successfully!" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  } finally {
+    await session.close();
   }
 };

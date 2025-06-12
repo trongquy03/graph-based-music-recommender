@@ -2,13 +2,15 @@ import {Song} from "../models/song.model.js";
 import {Album} from "../models/album.model.js"
 import {Artist} from "../models/artist.model.js"
 import cloudinary from "../lib/cloudinary.js"
-import { neo4jSession } from "../lib/db.js";
+import { neo4jDriver } from "../lib/db.js";
 import { removeVietnameseTones } from "../lib/removeDiacritics.js";
 import { generateLyricsFromCloudinaryUrl } from "../lib/lyrics.js";
 import path from "path";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { uploadRawToCloudinary } from "../lib/cloudinary.js";
+
+
 
 //helper function for cloudinary uploads
 const uploadToCloudinary = async (file) => {
@@ -24,6 +26,7 @@ const uploadToCloudinary = async (file) => {
 }
 
 export const createArtist = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { name, bio, imageUrl } = req.body;
 
@@ -42,7 +45,7 @@ export const createArtist = async (req, res, next) => {
 
     await artist.save();
 
-    await neo4jSession.run(
+    await session.run(
       `MERGE (a:Artist {id: $id, name: $name})`,
       {
         id: artist._id.toString(),
@@ -58,6 +61,7 @@ export const createArtist = async (req, res, next) => {
 };
 
 export const updateArtist = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { id } = req.params;
     const { name, bio, imageUrl } = req.body;
@@ -80,7 +84,7 @@ export const updateArtist = async (req, res, next) => {
       { new: true }
     );
 
-    await neo4jSession.run(
+    await session.run(
       `MATCH (a:Artist {id: $id})
        SET a.name = $name`,
       {
@@ -97,6 +101,7 @@ export const updateArtist = async (req, res, next) => {
 };
 
 export const deleteArtist = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { id } = req.params;
 
@@ -114,7 +119,7 @@ export const deleteArtist = async (req, res, next) => {
       await Song.findByIdAndDelete(song._id);
 
       // Xoá song khỏi Neo4j
-      await neo4jSession.run(
+      await session.run(
         `MATCH (s:Song {id: $id}) DETACH DELETE s`,
         { id: song._id.toString() }
       );
@@ -124,7 +129,7 @@ export const deleteArtist = async (req, res, next) => {
     await Artist.findOneAndDelete({ _id: id });
 
     // Xoá artist từ Neo4j
-    await neo4jSession.run(
+    await session.run(
       `MATCH (a:Artist {id: $id}) DETACH DELETE a`,
       { id }
     );
@@ -138,6 +143,7 @@ export const deleteArtist = async (req, res, next) => {
 
 
 export const createSong = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { title, artistId, albumId, duration, audioUrl, imageUrl, genre, mood } = req.body;
 
@@ -168,7 +174,7 @@ export const createSong = async (req, res, next) => {
       });
     }
 
-    await neo4jSession.run(
+    await session.run(
       `MERGE (s:Song {id: $id})
       SET s.title = $title, s.genre = $genre, s.mood = $mood
       WITH s
@@ -183,7 +189,7 @@ export const createSong = async (req, res, next) => {
       }
     );
     if (albumId) {
-    await neo4jSession.run(
+    await session.run(
       `
       MATCH (s:Song {id: $songId})
       MATCH (al:Album {id: $albumId})
@@ -205,6 +211,7 @@ export const createSong = async (req, res, next) => {
 };
 
 export const updateSong = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { id } = req.params;
     const {
@@ -240,7 +247,7 @@ export const updateSong = async (req, res, next) => {
       });
     }
 
-    // ✅ Gán null nếu albumId là chuỗi rỗng hoặc null
+    // Gán null nếu albumId là chuỗi rỗng hoặc null
     const safeAlbumId =
       albumId === "none" || albumId === "" || albumId === null ? null : albumId;
 
@@ -261,7 +268,7 @@ export const updateSong = async (req, res, next) => {
     );
 
     // Cập nhật Neo4j
-    await neo4jSession.run(
+    await session.run(
       `
       MATCH (s:Song {id: $id})
       OPTIONAL MATCH (s)<-[r:By]-(:Artist)
@@ -281,7 +288,7 @@ export const updateSong = async (req, res, next) => {
     );
 
     if (safeAlbumId) {
-      await neo4jSession.run(
+      await session.run(
         `MATCH (s:Song {id: $id})-[oldRel:IN_ALBUM]->(:Album)
          DELETE oldRel
          WITH s
@@ -293,7 +300,7 @@ export const updateSong = async (req, res, next) => {
         }
       );
     } else {
-      await neo4jSession.run(
+      await session.run(
         `MATCH (s:Song {id: $id})-[rel:IN_ALBUM]->(:Album)
          DELETE rel`,
         { id: id.toString() }
@@ -311,6 +318,7 @@ export const updateSong = async (req, res, next) => {
 
 
 export const deleteSong = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { id } = req.params;
 
@@ -327,7 +335,7 @@ export const deleteSong = async (req, res, next) => {
 
     await Song.findOneAndDelete({ _id: id });
 
-    await neo4jSession.run(
+    await session.run(
       `MATCH (s:Song {id: $id}) DETACH DELETE s`,
       { id }
     );
@@ -340,6 +348,7 @@ export const deleteSong = async (req, res, next) => {
 };
 
 export const createAlbum = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { title, artistId, releaseYear, imageUrl } = req.body;
 
@@ -356,7 +365,7 @@ export const createAlbum = async (req, res, next) => {
 
     await album.save();
 
-    await neo4jSession.run(
+    await session.run(
       `MATCH (a:Artist {id: $artistId})
        MERGE (al:Album {
          id: $id,
@@ -380,6 +389,7 @@ export const createAlbum = async (req, res, next) => {
 };
 
 export const updateAlbum = async (req, res, next) => {
+  const session = neo4jDriver.session();
   try {
     const { id } = req.params;
     const { title, artistId, releaseYear, imageUrl } = req.body;
@@ -403,7 +413,7 @@ export const updateAlbum = async (req, res, next) => {
       { new: true }
     );
 
-    await neo4jSession.run(
+    await session.run(
       `MATCH (al:Album {id: $id})
        SET al.title = $title, al.releaseYear = $year`,
       {
@@ -414,7 +424,7 @@ export const updateAlbum = async (req, res, next) => {
     );
 
     if (artistId && artistId !== existingAlbum.artist.toString()) {
-      await neo4jSession.run(`
+      await session.run(`
         MATCH (aOld:Artist)-[r:PRODUCED]->(al:Album {id: $id})
         DELETE r
         WITH al
@@ -445,7 +455,7 @@ export const deleteAlbum = async (req, res, next) => {
 
     await Album.findOneAndDelete({ _id: id });
 
-    await neo4jSession.run(
+    await session.run(
       `MATCH (al:Album {id: $id}) DETACH DELETE al`,
       { id }
     );

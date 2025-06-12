@@ -27,6 +27,7 @@ interface MusicStore {
   trendingSongs: Song[];
   stats: Stats;
   likedSongIds: string[];
+  likedSongs: Song[];
   hasFetchedLikes: boolean;
   likeCounts: Record<string, number>;
   listeningHistory: Song[];
@@ -77,6 +78,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   featuredSongs: [],
   trendingSongs: [],
   likedSongIds: [],
+  likedSongs: [],
   hasFetchedLikes: false,
   likeCounts: {},
   listeningHistory: [],
@@ -256,7 +258,7 @@ fetchAlbumsWithPagination: async (page = 1, limit = 20, search = "") => {
     }
   },
 
-  fetchLikedSongs: async () => {
+fetchLikedSongs: async () => {
   const { hasFetchedLikes } = get();
   if (hasFetchedLikes) return;
 
@@ -265,12 +267,14 @@ fetchAlbumsWithPagination: async (page = 1, limit = 20, search = "") => {
   try {
     const response = await axiosInstance.get("/likes");
 
-  
-    const likedIds = response.data
-      .map((like: any) => like.song?._id?.toString())
-      .filter(Boolean); // loại undefined/null
+    const likedSongs = response.data
+      .map((like: any) => like.song)
+      .filter(Boolean); 
+
+    const likedIds = likedSongs.map((s: any) => s._id.toString());
 
     set({
+      likedSongs,
       likedSongIds: likedIds,
       hasFetchedLikes: true,
     });
@@ -281,6 +285,7 @@ fetchAlbumsWithPagination: async (page = 1, limit = 20, search = "") => {
     set({ isLoading: false });
   }
 },
+
 
 
 fetchLikeCountBySongId: async (songId: string) => {
@@ -334,16 +339,14 @@ fetchListeningHistory: async () => {
     }
   },
 
-  unlikeSong: async (songId) => {
+unlikeSong: async (songId) => {
   try {
     await axiosInstance.post("/likes/unlike", { songId });
-
-
-    await get().fetchLikedSongs();
 
     const likeCount = await fetchLikeCount(songId);
     set((state) => ({
       likedSongIds: state.likedSongIds.filter((id) => id !== songId),
+      likedSongs: state.likedSongs.filter((s) => s._id !== songId),
       likeCounts: {
         ...state.likeCounts,
         [songId]: likeCount,
@@ -355,6 +358,7 @@ fetchListeningHistory: async () => {
     toast.error("Failed to unlike song");
   }
 },
+
 
   resetLikes: () => {
     set({ likedSongIds: [], hasFetchedLikes: false });

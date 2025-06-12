@@ -4,7 +4,6 @@ import LeftSidebar from "./components/LeftSidebar";
 import AudioPlayer from "@/layout/components/AudioPlayer";
 import PlaybackControls from "./components/PlaybackControls";
 import { useEffect, useState } from "react";
-import FriendsActivity from "./components/FriendsActivity";
 import CommentPanel from "@/pages/comment/CommentPanel";
 
 const MainLayout = () => {
