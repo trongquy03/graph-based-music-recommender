@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import Topbar from "@/components/Topbar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,6 @@ const ArtistSongsPage = () => {
 
   return (
     <div className="h-full bg-black">
-      <Topbar />
       <ScrollArea className="h-full p-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-white">Tất cả bài hát</h1>

@@ -52,7 +52,6 @@ const LikedSongsPage = () => {
 
   return (
     <div className="h-full rounded-md">
-      <Topbar />
       <ScrollArea className="h-full rounded-md">
         <div className="relative min-h-full">
           <div className="absolute inset-0 bg-gradient-to-b from-pink-500/80 via-zinc-900/80 to-zinc-900 pointer-events-none" />

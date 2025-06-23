@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSearchStore } from "@/stores/useSearchStore";
+import { useSearchStore, SearchResults } from "@/stores/useSearchStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { useAuth } from "@clerk/clerk-react";
+import { VoiceListeningBox } from "./VoiceListeningBox";
 import LikeButton from "@/pages/home/components/LikeButton";
-import { Search, Play, Pause, X } from "lucide-react";
+import { Search, Play, Pause, X, Mic, MicOff } from "lucide-react";
 import ReactDOM from "react-dom";
 
 export const SearchBox = () => {
@@ -15,14 +16,16 @@ export const SearchBox = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { query, setQuery, search, results, clear } = useSearchStore();
+  const { query, setQuery, searchTemp, clear } = useSearchStore();
   const { setCurrentSong, currentSong, isPlaying } = usePlayerStore();
   const { isSignedIn } = useAuth();
-
-  const [dropdownPosition, setDropdownPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
+  
+  const [isListening, setIsListening] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [tempResults, setTempResults] = useState<SearchResults>({
+    songs: [],
+    albums: [],
+    artists: [],
   });
 
   const updateDropdownPosition = () => {
@@ -37,11 +40,16 @@ export const SearchBox = () => {
   };
 
   useEffect(() => {
-    const delay = setTimeout(() => {
+    const delay = setTimeout(async () => {
       const trimmed = query.trim();
-      if (trimmed.length === 0) return clear();
+      if (trimmed.length === 0) {
+        clear();
+        setTempResults({ songs: [], artists: [], albums: [] });
+        return;
+      }
       updateDropdownPosition();
-      search(trimmed);
+      const res = await searchTemp(trimmed);
+      setTempResults(res);
     }, 300);
     return () => clearTimeout(delay);
   }, [query]);
@@ -55,7 +63,8 @@ export const SearchBox = () => {
         dropdownRef.current &&
         !dropdownRef.current.contains(target)
       ) {
-        clear();
+        setTempResults({ songs: [], artists: [], albums: [] });
+
       }
     };
     document.addEventListener("click", handleClickOutside);
@@ -77,11 +86,46 @@ export const SearchBox = () => {
     if (e.key === "Enter" && query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
       clear();
+      setTempResults({ songs: [], artists: [], albums: [] });
+
     }
   };
 
+  const startVoiceSearch = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Trình duyệt không hỗ trợ tìm kiếm bằng giọng nói");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "vi-VN";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript.trim();
+      if (transcript.length > 0) {
+        setQuery(transcript);
+        navigate(`/search?q=${encodeURIComponent(transcript)}`);
+        clear();
+        setTempResults({ songs: [], artists: [], albums: [] });
+
+      }
+      inputRef.current?.focus();
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.start();
+  };
+
   const dropdown =
-    (results.songs.length > 0 || results.artists?.length > 0) &&
+    (tempResults.songs.length > 0 || tempResults.artists?.length > 0) &&
     ReactDOM.createPortal(
       <div
         ref={dropdownRef}
@@ -94,11 +138,11 @@ export const SearchBox = () => {
         }}
         className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-2xl p-3 space-y-4"
       >
-        {results.songs.length > 0 && (
+        {tempResults.songs.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 mb-2">🎵 Gợi ý bài hát</p>
             <div className="space-y-1">
-              {results.songs.slice(0, 4).map((song) => {
+              {tempResults.songs.slice(0, 4).map((song) => {
                 const isCurrent = currentSong?._id === song._id;
                 return (
                   <div
@@ -143,17 +187,19 @@ export const SearchBox = () => {
           </div>
         )}
 
-        {results.artists?.length > 0 && (
+        {tempResults.artists?.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 mb-2">🎤 Nghệ sĩ</p>
             <div className="space-y-1">
-              {results.artists.slice(0, 2).map((artist) => (
+              {tempResults.artists.slice(0, 2).map((artist) => (
                 <div
                   key={artist._id}
                   className="flex items-center gap-3 p-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer"
                   onClick={() => {
                     navigate(`/artists/${artist._id}`);
                     clear();
+                    setTempResults({ songs: [], artists: [], albums: [] });
+
                   }}
                 >
                   <img
@@ -176,16 +222,13 @@ export const SearchBox = () => {
 
   return (
     <>
-      <div
-        ref={containerRef}
-        className="relative hidden sm:flex w-full max-w-md items-center"
-      >
+      <div ref={containerRef} className="relative hidden sm:flex w-full max-w-md items-center">
         <Search className="absolute left-3 size-4 text-zinc-500 dark:text-zinc-400" />
 
         <input
           ref={inputRef}
           placeholder="Tìm bài hát, nghệ sĩ..."
-          className="w-full pl-10 pr-8 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full pl-10 pr-16 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -193,16 +236,33 @@ export const SearchBox = () => {
 
         {query.length > 0 && (
           <button
-            onClick={clear}
-            className="absolute right-2 text-zinc-400 cursor-pointer transition"
+            onClick={() => {
+              clear();
+              setTempResults({ songs: [], artists: [], albums: [] });
+
+            }}
+            className="absolute right-10 text-zinc-400 cursor-pointer transition"
             aria-label="Clear search"
           >
             <X className="w-4 h-4" />
           </button>
         )}
+
+        <button
+          onClick={startVoiceSearch}
+          className="absolute right-2 text-zinc-400 cursor-pointer transition"
+          aria-label="Voice search"
+        >
+          {isListening ? (
+            <MicOff className="w-4 h-4 text-red-500 animate-pulse" />
+          ) : (
+            <Mic className="w-4 h-4" />
+          )}
+        </button>
       </div>
 
       {dropdown}
+      {isListening && <VoiceListeningBox onClose={() => setIsListening(false)} />}
     </>
   );
 };

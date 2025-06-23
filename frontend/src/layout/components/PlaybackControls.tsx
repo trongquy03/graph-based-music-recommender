@@ -7,14 +7,16 @@ import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { useRatingStore } from "@/stores/useRatingStore";
 import { useAuth } from "@clerk/clerk-react";
-import LyricKaraoke from "@/components/LyricKaraoke";
+import KaraokePanel from "@/components/KaraokePanel";
 import CommentPanel from "@/pages/comment/CommentPanel";
+import { ytPlayerRef } from "@/lib/youtubePlayer";
 import clsx from "clsx";
 import {
   MessageSquare,
   Mic2,
   Pause,
   Play,
+  PlaySquare,
   Repeat,
   Repeat1,
   Shuffle,
@@ -26,12 +28,16 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-
-
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+};
+
+const extractYoutubeId = (url: string) => {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|watch)\??v?=?|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
+  const match = url.match(regex);
+  return match ? match[1] : "";
 };
 
 export const PlaybackControls = () => {
@@ -46,92 +52,167 @@ export const PlaybackControls = () => {
     isLooping,
     isShuffling,
   } = usePlayerStore();
+  const [ytPlayer, setYtPlayer] = useState<any>(null);
+  const [showYoutube, setShowYoutube] = useState(false);
+  const [youtubeExpanded, setYoutubeExpanded] = useState(false);
   const [commentOpen, setCommentOpen] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const navigate = useNavigate();
   const { isSignedIn } = useAuth();
   const { likeCounts, fetchLikeCountBySongId } = useMusicStore();
-  
   const {
     getUserRatingForSong,
     getAverageRatingForSong,
     rateSong,
   } = useRatingStore();
-
   const [volume, setVolume] = useState(75);
   const [prevVolume, setPrevVolume] = useState(75);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showRatingSelector, setShowRatingSelector] = useState(false);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-useEffect(() => {
-  if (currentSong && isSignedIn) {
-    fetchLikeCountBySongId(currentSong._id);
-    console.log("Lyrics URL:", currentSong.lyricsUrl);
-    console.log("currentSong:", currentSong);
-  }
-}, [currentSong, isSignedIn]);
+  useEffect(() => {
+    if (typeof window.YT === "undefined") {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.body.appendChild(tag);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentSong || currentSong.audioUrl || !currentSong.youtubeUrl) return;
+
+    const ytDiv = document.getElementById("hidden-youtube");
+    if (!ytDiv) return;
+
+    const player = new window.YT.Player("hidden-youtube", {
+    videoId: extractYoutubeId(currentSong.youtubeUrl),
+    events: {
+/**
+ * Initializes the YouTube player when the API is ready and starts video playback.
+ *
+ * @param event - The event object containing the player target.
+ */
+
+      onReady: (event: any) => {
+        setYtPlayer(event.target);
+        ytPlayerRef.current = event.target;
+        if (isPlaying) {
+          event.target.playVideo(); 
+        }
+      },
+
+      onStateChange: (event: any) => {
+        // 0 = ended
+        if (event.data === window.YT.PlayerState.ENDED) {
+          if (isLooping) {
+            event.target.seekTo(0);
+            event.target.playVideo();
+          } else {
+            playNext(); 
+          }
+        }
+      },
+    },
+    playerVars: {
+      autoplay: 0,
+      controls: 0,
+    },
+  });
+
+
+    return () => {
+      player?.destroy?.();
+    };
+  }, [currentSong]);
+
+  useEffect(() => {
+  setShowYoutube(false);
+}, [currentSong]);
 
 
   useEffect(() => {
-    audioRef.current = document.querySelector("audio");
-    const audio = audioRef.current;
-    if (!audio) return;
+  const interval = setInterval(() => {
+    if (ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getDuration) {
+      setCurrentTime(ytPlayer.getCurrentTime());
+      setDuration(ytPlayer.getDuration());
+    }
+  }, 500); // cập nhật mỗi nửa giây
 
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
+  return () => clearInterval(interval);
+}, [ytPlayer]);
 
-    audio.addEventListener("timeupdate", updateTime);
-    audio.addEventListener("loadedmetadata", updateDuration);
 
-    const handleEnded = () => {
-      if (isLooping && currentSong) {
-        audio.currentTime = 0;
-        audio.play();
-      } else {
-        playNext();
-      }
-    };
-    audio.addEventListener("ended", handleEnded);
+useEffect(() => {
+  if (!currentSong?.audioUrl) return;
+  const audio = audioRef.current;
+  if (!audio) return;
 
-    return () => {
-      audio.removeEventListener("timeupdate", updateTime);
-      audio.removeEventListener("loadedmetadata", updateDuration);
-      audio.removeEventListener("ended", handleEnded);
-    };
-  }, [currentSong, isLooping, playNext]);
-
-  const handleSeek = (value: number[]) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = value[0];
-  };
-
-  const toggleMute = () => {
-    if (volume === 0) {
-      setVolume(prevVolume);
-      if (audioRef.current) audioRef.current.volume = prevVolume / 100;
+  const updateTime = () => setCurrentTime(audio.currentTime);
+  const updateDuration = () => setDuration(audio.duration);
+  const handleEnded = () => {
+    if (isLooping) {
+      audio.currentTime = 0;
+      audio.play();
     } else {
-      setPrevVolume(volume);
-      setVolume(0);
-      if (audioRef.current) audioRef.current.volume = 0;
+      playNext();
     }
   };
 
+  audio.addEventListener("timeupdate", updateTime);
+  audio.addEventListener("loadedmetadata", updateDuration);
+  audio.addEventListener("ended", handleEnded);
+
+  return () => {
+    audio.removeEventListener("timeupdate", updateTime);
+    audio.removeEventListener("loadedmetadata", updateDuration);
+    audio.removeEventListener("ended", handleEnded);
+  };
+}, [currentSong, isLooping, playNext]);
+
+
+  const handleSeek = (value: number[]) => {
+  if (currentSong?.audioUrl && audioRef.current) {
+    audioRef.current.currentTime = value[0];
+  } else if (ytPlayer && ytPlayer.seekTo) {
+    ytPlayer.seekTo(value[0], true);
+  }
+};
+
+
+  const toggleMute = () => {
+  if (volume === 0) {
+    setVolume(prevVolume);
+    if (audioRef.current) {
+    audioRef.current.volume = prevVolume / 100;
+  }
+
+    ytPlayer?.setVolume?.(prevVolume);
+  } else {
+    setPrevVolume(volume);
+    setVolume(0);
+    if (audioRef.current) {
+    audioRef.current.volume = prevVolume / 100;
+  }
+
+    ytPlayer?.setVolume?.(0);
+  }
+};
+
+
   const userRating = currentSong ? getUserRatingForSong(currentSong._id) : null;
   const avgRating = currentSong ? getAverageRatingForSong(currentSong._id) : { average: 0, totalRatings: 0 };
-
   return (
     <div className="relative">
       {showLyrics && currentSong?.lyricsUrl && (
-  <div className="fixed top-0 left-0 right-0 bottom-20 z-50 bg-black/95 flex flex-col">
-    <div className="flex-1 overflow-y-auto overflow-x-hidden">
-      <LyricKaraoke audioRef={audioRef} lyricsUrl={currentSong.lyricsUrl} />
-    </div>
-  </div>
-)}
+        <div className="fixed top-0 left-0 right-0 bottom-20 z-50 bg-black/95 flex flex-col">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <KaraokePanel audioRef={audioRef} lyricsUrl={currentSong.lyricsUrl} currentSong={currentSong} />
+          </div>
+        </div>
+      )}
 
     <footer className="h-20 sm:h-24 bg-zinc-900 border-t border-zinc-800 px-4">
       <div className="flex justify-between items-center h-full max-w-[1800px] mx-auto">
@@ -147,14 +228,14 @@ useEffect(() => {
       />
 
       <div className="flex-1 min-w-0"> 
-          <div className="font-medium truncate text-white flex items-center gap-1">
+          <div className="font-medium truncate text-white cursor-pointer flex items-center gap-1"  onClick={() => navigate(`/music/${currentSong._id}`)}>
             {currentSong.title}
             {currentSong.isPremium && (
               <span className="bg-yellow-500 text-black text-[10px] font-semibold px-2 py-0.5 rounded"> PREMIUM</span>
             )}
         </div>
         <div
-          className="text-sm text-zinc-400 truncate hover:underline cursor-pointer"
+          className="text-sm text-zinc-400 truncate hover:underline cursor-pointer "
           onClick={() => navigate(`/artists/${currentSong.artist._id}`)}
         >
           {currentSong.artist.name}
@@ -207,13 +288,27 @@ useEffect(() => {
             </Button>
 
             <Button
-              size="icon"
-              className="bg-white hover:bg-white/80 text-black cursor-pointer rounded-full h-8 w-8"
-              onClick={togglePlay}
-              disabled={!currentSong}
-            >
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </Button>
+  size="icon"
+  className="bg-white hover:bg-white/80 text-black cursor-pointer rounded-full h-8 w-8"
+  onClick={() => {
+    const store = usePlayerStore.getState();
+
+    if (currentSong?.audioUrl) {
+      const audio = audioRef.current;
+      if (audio) {
+        isPlaying ? audio.pause() : audio.play();
+      }
+    } else if (ytPlayer) {
+      isPlaying ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
+    }
+
+    store.setIsPlaying(!isPlaying);
+  }}
+  disabled={!currentSong}
+>
+  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+</Button>
+
 
             <Button
               size="icon"
@@ -315,6 +410,24 @@ useEffect(() => {
             <Mic2 className="h-4 w-4" />
           </Button>
 
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              if (currentSong?.youtubeUrl) {
+                setShowYoutube(true);
+                setYoutubeExpanded(false); // mặc định hiển thị nhỏ
+                audioRef.current?.pause();
+                ytPlayer?.pauseVideo?.(); 
+
+              } else {
+                alert("Không có MV YouTube cho bài hát này.");
+              }
+            }}
+          >
+            <PlaySquare className="h-4 w-4" />
+          </Button>
+
 
           {/* <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">
             <ListMusic className="h-4 w-4" />
@@ -339,9 +452,6 @@ useEffect(() => {
         </Button>
 
 
-
-
-
           <div className="flex items-center gap-2">
             <Button
               size="icon"
@@ -362,20 +472,63 @@ useEffect(() => {
                 if (audioRef.current) {
                   audioRef.current.volume = value[0] / 100;
                 }
+                if (ytPlayer && ytPlayer.setVolume) {
+                  ytPlayer.setVolume(value[0]); // yt volume là 0-100
+                }
               }}
+
             />
           </div>
         </div>
       </div>
     </footer>
+
+    <div className="absolute w-0 h-0 overflow-hidden opacity-0 pointer-events-none">
+  <div id="hidden-youtube" />
+</div>
+
     {showComments && currentSong && (
       <CommentPanel /> 
+    )}
+
+    {showYoutube && currentSong?.youtubeUrl && (
+      <div className="fixed right-6 bottom-28 w-[420px] h-[240px] z-[9999] bg-black/90 rounded-lg shadow-xl flex flex-col justify-between overflow-hidden">
+        <div className="relative w-full h-full">
+          <iframe
+            src={`https://www.youtube.com/embed/${extractYoutubeId(currentSong.youtubeUrl)}?autoplay=1&rel=0`}
+            className="w-full h-full"
+            title="YouTube MV"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+          ></iframe>
+
+          {/* Nút đóng */}
+          <button
+            onClick={() => setShowYoutube(false)}
+            className="absolute top-2 right-2 bg-white text-black rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-red-500 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Nút next MV */}
+        <div className="flex justify-between items-center px-4 py-2 bg-zinc-900">
+          <div className="text-white text-xs truncate w-[85%]">
+            🎬 {currentSong.title} – {typeof currentSong.artist === "object" ? currentSong.artist.name : currentSong.artist}
+          </div>
+          <button
+            className="text-white text-xs px-2 py-1 bg-zinc-700 rounded hover:bg-zinc-600"
+            onClick={playNext} // dùng từ `usePlayerStore`
+          >
+            Next ▶
+          </button>
+        </div>
+      </div>
     )}
 
 </div>
   );
 };
-
 
 
 export default PlaybackControls;

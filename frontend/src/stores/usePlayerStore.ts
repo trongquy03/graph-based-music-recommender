@@ -1,6 +1,9 @@
+
 import { create } from "zustand";
 import { Song } from "@/types";
 import { useChatStore } from "./useChatStore";
+import { ytPlayerRef } from "@/lib/youtubePlayer";
+import { axiosInstance } from "@/lib/axios";
 
 interface PlayerStore {
   currentSong: Song | null;
@@ -12,7 +15,6 @@ interface PlayerStore {
   isPlayingAd: boolean;
   setIsPlaying: (value: boolean) => void;
   setIsPlayingAd: (value: boolean) => void;
-
   initializeQueue: (songs: Song[]) => void;
   playAlbum: (songs: Song[], startIndex?: number) => void;
   setCurrentSong: (song: Song | null) => void;
@@ -24,6 +26,15 @@ interface PlayerStore {
   setAdPlaying: (val: boolean) => void;
 }
 
+const recordListening = async (songId: string) => {
+  try {
+    await axiosInstance.post("/history", { songId });
+  } catch (err) {
+    console.error("Không thể ghi lịch sử nghe:", err);
+  }
+};
+
+
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
   currentSong: null,
   isPlaying: false,
@@ -32,35 +43,27 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isLooping: false,
   isShuffling: false,
   isPlayingAd: false,
+
   setIsPlaying: (value) => set({ isPlaying: value }),
   setIsPlayingAd: (value) => set({ isPlayingAd: value }),
 
   initializeQueue: (songs) => {
     set({
       queue: songs,
-      currentSong: songs[0] || null,
-      currentIndex: songs.length > 0 ? 0 : -1,
+      currentSong: null,
+      currentIndex: -1,
     });
   },
 
   playAlbum: (songs, startIndex = 0) => {
     if (!songs.length) return;
 
-    const song = songs[startIndex];
-    const socket = useChatStore.getState().socket;
-    if (socket?.auth?.userId) {
-      socket.emit("update_activity", {
-        userId: socket.auth.userId,
-        activity: `Playing ${song.title} by ${song.artist}`,
-      });
-    }
-
     set({
       queue: songs,
-      currentSong: song,
       currentIndex: startIndex,
-      isPlaying: true,
     });
+
+    get().setCurrentSong(songs[startIndex]);
   },
 
   setCurrentSong: (song) => {
@@ -68,6 +71,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     const songIndex = get().queue.findIndex((s) => s._id === song._id);
     const socket = useChatStore.getState().socket;
+
     if (socket?.auth?.userId) {
       socket.emit("update_activity", {
         userId: socket.auth.userId,
@@ -77,93 +81,73 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     set({
       currentSong: song,
-      isPlaying: true,
       currentIndex: songIndex !== -1 ? songIndex : 0,
+      isPlaying: true,
     });
+
+    recordListening(song._id);
+
+    setTimeout(() => {
+      const audio = document.querySelector("audio") as HTMLAudioElement;
+
+      if (song.audioUrl) {
+        if (audio) {
+          audio.src = song.audioUrl;
+          audio.load();
+          audio.play().catch((err) => console.error("Audio play error:", err));
+        }
+      } else {
+        if (audio) {
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+        }
+
+        ytPlayerRef.current?.loadVideoById?.(song.youtubeUrl.split("v=")[1]);
+        ytPlayerRef.current?.playVideo?.();
+      }
+    }, 300);
   },
 
   togglePlay: () => {
     const { isPlaying, currentSong } = get();
-    const socket = useChatStore.getState().socket;
-    if (socket?.auth?.userId) {
-      socket.emit("update_activity", {
-        userId: socket.auth.userId,
-        activity: !isPlaying && currentSong
-          ? `Playing ${currentSong.title} by ${currentSong.artist}`
-          : "Idle",
-      });
+    if (!currentSong) return;
+
+    const audio = document.querySelector("audio") as HTMLAudioElement;
+
+    if (currentSong.audioUrl && audio) {
+      isPlaying ? audio.pause() : audio.play();
+    } else if (!currentSong.audioUrl) {
+      if (ytPlayerRef.current?.playVideo && ytPlayerRef.current?.pauseVideo) {
+        isPlaying ? ytPlayerRef.current.pauseVideo() : ytPlayerRef.current.playVideo();
+      }
     }
 
     set({ isPlaying: !isPlaying });
   },
 
   playNext: () => {
-    const { queue, currentIndex, isShuffling } = get();
-
+    const { queue, currentIndex, isShuffling, setCurrentSong } = get();
     if (!queue.length) return;
 
     let nextIndex = currentIndex + 1;
-
     if (isShuffling) {
       nextIndex = Math.floor(Math.random() * queue.length);
     }
 
-    if (nextIndex < queue.length) {
-      const nextSong = queue[nextIndex];
-      const socket = useChatStore.getState().socket;
-      if (socket?.auth?.userId) {
-        socket.emit("update_activity", {
-          userId: socket.auth.userId,
-          activity: `Playing ${nextSong.title} by ${nextSong.artist}`,
-        });
-      }
-
-      set({
-        currentIndex: nextIndex,
-        currentSong: nextSong,
-        isPlaying: true,
-      });
-    } else {
-      // Loop playlist về đầu
-      const song = queue[0];
-      const socket = useChatStore.getState().socket;
-      if (socket?.auth?.userId) {
-        socket.emit("update_activity", {
-          userId: socket.auth.userId,
-          activity: `Playing ${song.title} by ${song.artist}`,
-        });
-      }
-
-      set({
-        currentIndex: 0,
-        currentSong: song,
-        isPlaying: true,
-      });
-    }
+    if (nextIndex >= queue.length) nextIndex = 0;
+    setCurrentSong(queue[nextIndex]);
   },
 
   playPrevious: () => {
-    const { queue, currentIndex } = get();
-    const prevIndex = currentIndex - 1;
+    const { queue, currentIndex, setCurrentSong } = get();
+    let prevIndex = currentIndex - 1;
 
-    if (prevIndex >= 0) {
-      set({
-        currentIndex: prevIndex,
-        currentSong: queue[prevIndex],
-        isPlaying: true,
-      });
-    } else {
-      set({
-        currentIndex: 0,
-        currentSong: queue[0],
-        isPlaying: true,
-      });
-    }
+    if (prevIndex < 0) prevIndex = 0;
+    setCurrentSong(queue[prevIndex]);
   },
 
   toggleLoop: () => set({ isLooping: !get().isLooping }),
-
   shuffleQueue: () => set({ isShuffling: !get().isShuffling }),
-
   setAdPlaying: (val) => set({ isPlayingAd: val }),
 }));

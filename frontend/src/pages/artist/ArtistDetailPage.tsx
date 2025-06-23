@@ -16,7 +16,7 @@ const ArtistDetailPage = () => {
   const { isSignedIn } = useAuth();
   const { artistId } = useParams();
   const navigate = useNavigate();
-  const { artists, fetchArtists, fetchFollowersCount } = useArtistStore();
+  const { getArtistById, fetchFollowersCount } = useArtistStore();
   const { albums, songs, fetchAlbums, fetchSongs } = useMusicStore();
   const { playAlbum, currentSong, isPlaying, togglePlay } = usePlayerStore();
 
@@ -24,19 +24,22 @@ const ArtistDetailPage = () => {
   const [followers, setFollowers] = useState(0);
 
   useEffect(() => {
-    fetchArtists(1, 20, "", isSignedIn ?? false);
-    fetchAlbums();
-    fetchSongs(1, 50, { artist: artistId });
+    const load = async () => {
+      if (!artistId) return;
 
-    fetchFollowersCount(artistId!).then(setFollowers);
-  }, [artistId, isSignedIn]);
+      const artistData = await getArtistById(artistId);
+      setArtist(artistData);
 
-  useEffect(() => {
-    const found = artists.find((a) => a._id === artistId);
-    if (found) setArtist(found);
-  }, [artists, artistId]);
+      await fetchAlbums();
+      await fetchSongs(1, 50, { artist: artistId });
 
-  if (!artist) return <div>Loading...</div>;
+      const count = await fetchFollowersCount(artistId);
+      setFollowers(count);
+    };
+    load();
+  }, [artistId]);
+
+  if (!artist) return <div className="text-white p-6">Đang tải nghệ sĩ...</div>;
 
   const artistAlbums = albums.filter((a) =>
     typeof a.artist === "object" ? a.artist._id === artistId : a.artist === artistId
@@ -50,19 +53,17 @@ const ArtistDetailPage = () => {
   const topAlbums = artistAlbums.slice(0, 3);
 
   const handlePlayAll = () => {
-  if (artistSongs.length > 0) {
-    playAlbum(artistSongs, 0);
-  } else {
-    console.warn("Artist has no songs to play.");
-  }
-};
+    if (artistSongs.length > 0) {
+      playAlbum(artistSongs, 0);
+    }
+  };
 
-
-  const isCurrentArtistPlaying = artistSongs.some(song => song._id === currentSong?._id);
+  const isCurrentArtistPlaying = artistSongs.some(
+    (song) => song._id === currentSong?._id
+  );
 
   return (
     <div className="h-full rounded-md">
-      <Topbar />
       <ScrollArea className="h-full rounded-md">
         <div className="relative">
           <div className="w-full h-[300px] bg-gradient-to-b from-purple-700/80 to-black relative flex items-end p-6">
@@ -72,20 +73,22 @@ const ArtistDetailPage = () => {
               className="w-36 h-36 rounded-full border-4 border-white shadow-lg object-cover"
             />
             <div className="ml-6 text-white">
-  <div className="flex items-center gap-4">
-    <h1 className="text-4xl font-bold">{artist.name}</h1>
-    <Button
-      onClick={() => isCurrentArtistPlaying ? togglePlay() : handlePlayAll()}
-      size="icon"
-      className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-400 hover:scale-105 transition-all"
-    >
-      {isPlaying && isCurrentArtistPlaying ? (
-        <Pause className="h-5 w-5 text-black" />
-      ) : (
-        <Play className="h-5 w-5 text-black" />
-      )}
-    </Button>
-  </div>
+              <div className="flex items-center gap-4">
+                <h1 className="text-4xl font-bold">{artist.name}</h1>
+                <Button
+                  onClick={() =>
+                    isCurrentArtistPlaying ? togglePlay() : handlePlayAll()
+                  }
+                  size="icon"
+                  className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-400 hover:scale-105 transition-all"
+                >
+                  {isPlaying && isCurrentArtistPlaying ? (
+                    <Pause className="h-5 w-5 text-black" />
+                  ) : (
+                    <Play className="h-5 w-5 text-black" />
+                  )}
+                </Button>
+              </div>
               <div className="mt-2">
                 <FollowButton artistId={artist._id} />
               </div>
@@ -97,16 +100,15 @@ const ArtistDetailPage = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl text-white font-semibold">Bài Hát Nổi Bật</h2>
               {artistSongs.length > 6 && (
-            <button
-              onClick={() => navigate(`/artists/${artist._id}/songs`)}
-              className="text-sm text-purple-400 hover:underline"
-            >
-              Xem tất cả
-            </button>
-          )}
-
+                <button
+                  onClick={() => navigate(`/artists/${artist._id}/songs`)}
+                  className="text-sm text-purple-400 hover:underline"
+                >
+                  Xem tất cả
+                </button>
+              )}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {topSongs.map((song) => (
                 <div
@@ -114,7 +116,11 @@ const ArtistDetailPage = () => {
                   className="flex items-center gap-3 bg-zinc-800 p-3 rounded-md group hover:bg-zinc-700 transition relative"
                 >
                   <div className="relative">
-                    <img src={song.imageUrl} alt={song.title} className="size-12 rounded" />
+                    <img
+                      src={song.imageUrl}
+                      alt={song.title}
+                      className="size-12 rounded"
+                    />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <LikeButton song={song} />
                     </div>
@@ -128,9 +134,10 @@ const ArtistDetailPage = () => {
                         </span>
                       )}
                     </div>
-
                     <div className="text-xs text-zinc-400 truncate">
-                      {typeof song.artist === "object" ? song.artist.name : song.artist}
+                      {typeof song.artist === "object"
+                        ? song.artist.name
+                        : song.artist}
                     </div>
                   </div>
                   <div className="flex items-center">
@@ -147,7 +154,7 @@ const ArtistDetailPage = () => {
               <h2 className="text-xl text-white font-semibold">Album</h2>
               {artistAlbums.length > 3 && (
                 <button
-                  onClick={() => navigate(`/artists/${artistId}/albums`)}
+                  onClick={() => navigate(`/artists/${artist._id}/albums`)}
                   className="text-sm text-purple-400 hover:underline"
                 >
                   Xem tất cả
@@ -175,8 +182,12 @@ const ArtistDetailPage = () => {
 
           {/* Bio */}
           <div className="px-6 mt-8 pb-12">
-            <h2 className="text-xl text-white font-semibold mb-2">Về {artist.name}</h2>
-            <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{artist.bio}</p>
+            <h2 className="text-xl text-white font-semibold mb-2">
+              Về {artist.name}
+            </h2>
+            <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+              {artist.bio}
+            </p>
           </div>
         </div>
       </ScrollArea>

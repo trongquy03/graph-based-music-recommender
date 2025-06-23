@@ -12,17 +12,17 @@ interface ArtistWithFollowInfo extends Artist {
 
 interface ArtistStore {
   artists: ArtistWithFollowInfo[];
-
   isLoading: boolean;
   error: string | null;
 
   fetchArtists: (
-  page?: number,
-  limit?: number,
-  search?: string,
-  isSignedIn?: boolean
-) => Promise<{ artists: Artist[]; totalPages: number }>;
+    page?: number,
+    limit?: number,
+    search?: string,
+    isSignedIn?: boolean
+  ) => Promise<{ artists: Artist[]; totalPages: number }>;
 
+  getArtistById: (artistId: string) => Promise<Artist | null>;
 
   updateArtist: (id: string, data: Partial<Artist>) => Promise<void>;
   deleteArtist: (id: string) => Promise<void>;
@@ -39,49 +39,56 @@ export const useArtistStore = create<ArtistStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-fetchArtists: async (page = 1, limit = 20, search = "", isSignedIn = false) => {
-  set({ isLoading: true, error: null });
-  try {
-    const res = await axiosInstance.get("/artist", {
-      params: { page, limit, search },
-    });
+  fetchArtists: async (page = 1, limit = 20, search = "", isSignedIn = false) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await axiosInstance.get("/artist", {
+        params: { page, limit, search },
+      });
 
-    const rawArtists = res.data.data || [];
-    const totalPages = res.data.totalPages || 1;
+      const rawArtists = res.data.data || [];
+      const totalPages = res.data.totalPages || 1;
 
-    const enrichedArtists = await Promise.all(
-      rawArtists.map(async (artist: Artist) => {
-        let isFollowingRes = false;
-        if (isSignedIn) {
-          try {
-            isFollowingRes = await get().isFollowing(artist._id);
-          } catch {
-            isFollowingRes = false;
+      const enrichedArtists = await Promise.all(
+        rawArtists.map(async (artist: Artist) => {
+          let isFollowingRes = false;
+          if (isSignedIn) {
+            try {
+              isFollowingRes = await get().isFollowing(artist._id);
+            } catch {
+              isFollowingRes = false;
+            }
           }
-        }
 
-        const followersCountRes = await get().fetchFollowersCount(artist._id);
-        return {
-          ...artist,
-          isFollowing: isFollowingRes,
-          followersCount: followersCountRes,
-        };
-      })
-    );
+          const followersCountRes = await get().fetchFollowersCount(artist._id);
+          return {
+            ...artist,
+            isFollowing: isFollowingRes,
+            followersCount: followersCountRes,
+          };
+        })
+      );
 
-    set({ artists: enrichedArtists });
-    return { artists: enrichedArtists, totalPages }; // ✅ Thêm return ở đây
-  } catch (err: any) {
-    toast.error("Failed to fetch artists");
-    set({ error: err.message });
-    return { artists: [], totalPages: 1 }; // ✅ Trả fallback để không bị crash
-  } finally {
-    set({ isLoading: false });
-  }
-},
+      set({ artists: enrichedArtists });
+      return { artists: enrichedArtists, totalPages };
+    } catch (err: any) {
+      toast.error("Failed to fetch artists");
+      set({ error: err.message });
+      return { artists: [], totalPages: 1 };
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 
-
-
+  getArtistById: async (artistId) => {
+    try {
+      const res = await axiosInstance.get(`/artist/${artistId}`);
+      return res.data;
+    } catch (err: any) {
+      console.error("Failed to fetch artist by id:", err.message);
+      return null;
+    }
+  },
 
   updateArtist: async (id, data) => {
     try {
@@ -154,7 +161,7 @@ fetchArtists: async (page = 1, limit = 20, search = "", isSignedIn = false) => {
       const res = await axiosInstance.get(`/artist/${artistId}/is-following`);
       return res.data.isFollowing;
     } catch (err: any) {
-      return false; // Silent fallback
+      return false;
     }
   },
 

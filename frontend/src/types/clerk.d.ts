@@ -7,5 +7,7 @@ declare global {
         getToken: () => Promise<string | null>;
       };
     };
+    YT: typeof YT;
+    onYouTubeIframeAPIReady: () => void;
   }
 }

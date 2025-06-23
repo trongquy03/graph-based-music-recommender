@@ -7,6 +7,11 @@ export interface Artist {
   isFollowing?: boolean;
 }
 
+export interface Tag {
+  name: string;
+  type: "Genre" | "Mood" | "Country" | "Era" | "Unknown";
+}
+
 export interface Song {
     _id: string;
     title: string;
@@ -19,13 +24,16 @@ export interface Song {
       title: string;
     };
     lyricsUrl?: string;
+    karaokeUrl?: string;
     imageUrl: string;
     audioUrl: string;
+    youtubeUrl: string;
     duration: number;
     isPremium: boolean;
     createdAt: string;
     updatedAt: string;
     avgRating: number;
+    tags?: Tag[];
 }
 
 export interface Album {
@@ -59,5 +67,12 @@ export interface User {
 	fullName: string;
 	imageUrl: string;
 }
+
+export interface LyricLine {
+  start: number;
+  end: number;
+  text: string;
+}
+
 
 export * from "./clerk"; 

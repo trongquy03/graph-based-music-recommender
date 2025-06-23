@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { usePremiumStore } from "@/stores/usePremiumStore";
 import { axiosInstance } from "@/lib/axios";
+import { ytPlayerRef } from "@/lib/youtubePlayer";
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -29,6 +30,24 @@ const AudioPlayer = () => {
     }
   };
 
+  const triggerAd = () => {
+    setIsPlayingAd(true);
+    setIsAdMode(true);
+    setSkipEnabled(false);
+    setRemaining(10);
+
+    const countdown = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdown);
+          setSkipEnabled(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -54,22 +73,7 @@ const AudioPlayer = () => {
       }
 
       if (!isPremium && !isAdMode) {
-        setIsPlayingAd(true);
-        setIsAdMode(true);
-        setSkipEnabled(false);
-        setRemaining(10);
-
-        const countdown = setInterval(() => {
-          setRemaining((prev) => {
-            if (prev <= 1) {
-              clearInterval(countdown);
-              setSkipEnabled(true);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-
+        triggerAd();
         audio.src = "/songs/ads.mp3";
         audio.load();
         audio.play().catch(() => {});
@@ -115,29 +119,41 @@ const AudioPlayer = () => {
     }
   }, [currentSong?.audioUrl, isAdMode]);
 
-
+  // 👉 BẮT SỰ KIỆN KẾT THÚC VIDEO YOUTUBE
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentSong || isPremium || !currentSong.isPremium) return;
+    const yt = ytPlayerRef.current;
+    if (!yt || isPremium || isAdMode || !currentSong?.youtubeUrl) return;
 
-    const timer = setInterval(() => {
-      if (audio.currentTime >= 30) {
-        audio.pause();
-        audio.currentTime = 0;
-        setIsPlaying(false); 
-        
+    const handleStateChange = (event: any) => {
+      if (event.data === window.YT?.PlayerState?.ENDED) {
+        triggerAd();
+      }
+    };
+
+    yt.addEventListener("onStateChange", handleStateChange);
+    return () => {
+      yt.removeEventListener("onStateChange", handleStateChange);
+    };
+  }, [currentSong?.youtubeUrl, isPremium, isAdMode]);
+
+  // 👉 NGĂN CHƠI QUÁ 30 GIÂY VỚI BÀI PREMIUM
+  useEffect(() => {
+    if (!currentSong || isPremium || !currentSong.isPremium) return;
+    const interval = setInterval(() => {
+      const yt = ytPlayerRef.current;
+      if (yt?.getCurrentTime && yt.getCurrentTime() >= 30) {
+        yt.pauseVideo?.();
+        setIsPlaying(false);
       }
     }, 500);
-
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, [currentSong, isPremium]);
 
   const skipAd = () => {
     if (!skipEnabled) return;
-    const audio = audioRef.current;
-    if (!audio) return;
+    audioRef.current?.pause();
+    ytPlayerRef.current?.pauseVideo?.();
 
-    audio.pause();
     setIsAdMode(false);
     setIsPlayingAd(false);
     setSkipEnabled(false);
@@ -161,9 +177,7 @@ const AudioPlayer = () => {
                 onClick={skipAd}
                 disabled={!skipEnabled}
                 className={`px-5 py-2 rounded-lg text-white font-semibold transition ${
-                  skipEnabled
-                    ? "bg-gray-800 hover:bg-gray-900"
-                    : "bg-gray-400 cursor-not-allowed"
+                  skipEnabled ? "bg-gray-800 hover:bg-gray-900" : "bg-gray-400 cursor-not-allowed"
                 }`}
               >
                 {skipEnabled ? "Bỏ qua quảng cáo" : `Chờ ${remaining}s...`}
@@ -173,16 +187,10 @@ const AudioPlayer = () => {
         </div>
       )}
 
-      {/* Thông báo cố định nếu chưa Premium */}
-      {currentSong?.isPremium && !isPremium && (
+      {!isPremium && currentSong?.isPremium && (
         <div className="w-full bg-yellow-500 text-white text-center text-sm py-2 font-semibold fixed bottom-20 z-[9998]">
           Nâng cấp tài khoản Premium để nghe trọn bài hát.{" "}
-          <a
-            href="/premium"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-white"
-          >
+          <a href="/premium" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
             Tìm hiểu ngay
           </a>
         </div>

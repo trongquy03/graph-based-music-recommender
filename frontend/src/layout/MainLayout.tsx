@@ -5,6 +5,8 @@ import AudioPlayer from "@/layout/components/AudioPlayer";
 import PlaybackControls from "./components/PlaybackControls";
 import { useEffect, useState } from "react";
 import CommentPanel from "@/pages/comment/CommentPanel";
+import { MiniAIChat } from "@/components/MiniAIChat";
+import Topbar from "@/components/Topbar";
 
 const MainLayout = () => {
     const [commentOpen, setCommentOpen] = useState(false);
@@ -27,7 +29,7 @@ const MainLayout = () => {
         }, []);
     return (
         <div className="h-screen bg-black text-white flex flex-col">
-            {/* <Topbar/> */}
+            <Topbar/>
             <ResizablePanelGroup direction="horizontal" className="flex-1 flex h-full overflow-hidden p-2">
                 <AudioPlayer/>
                 {/* Left sidebar */}
@@ -64,7 +66,7 @@ const MainLayout = () => {
 
 
             </ResizablePanelGroup>
-
+             <MiniAIChat />
             <PlaybackControls />
         </div>
   )

@@ -35,8 +35,9 @@ interface MusicStore {
   fetchAlbums: () => Promise<void>;
   fetchAlbumById: (id: string) => Promise<void>;
   fetchFeaturedSongs: () => Promise<void>;
-  fetchMadeForYouSongs: () => Promise<void>;
+  // fetchMadeForYouSongs: () => Promise<void>;
   fetchTrendingSongs: () => Promise<void>;
+  fetchSongById: (id: string) => Promise<Song | null>;
   fetchLikeCountBySongId: (songId: string) => Promise<void>;
   fetchStats: () => Promise<void>;
   deleteSong: (id: string) => Promise<void>;
@@ -126,7 +127,6 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
 },
 
 
-// useMusicStore.ts
 fetchSongs: async (
   page = 1,
   limit = 20,
@@ -160,6 +160,20 @@ fetchSongs: async (
     set({ isLoading: false });
   }
 },
+
+fetchSongById: async (id) => {
+  set({ isLoading: true, error: null });
+  try {
+    const response = await axiosInstance.get(`/songs/${id}`);
+    return response.data as Song;
+  } catch (error: any) {
+    toast.error("Không tìm thấy bài hát");
+    return null;
+  } finally {
+    set({ isLoading: false });
+  }
+},
+
 
 fetchAlbumsWithPagination: async (page = 1, limit = 20, search = "") => {
   set({ isLoading: true, error: null });
@@ -234,17 +248,17 @@ fetchAlbumsWithPagination: async (page = 1, limit = 20, search = "") => {
     }
   },
 
-  fetchMadeForYouSongs: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await axiosInstance.get("/songs/made-for-you");
-      set({ madeForYouSongs: response.data });
-    } catch (error: any) {
-      set({ error: error.response?.data?.message || error.message });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+  // fetchMadeForYouSongs: async () => {
+  //   set({ isLoading: true, error: null });
+  //   try {
+  //     const response = await axiosInstance.get("/songs/made-for-you");
+  //     set({ madeForYouSongs: response.data });
+  //   } catch (error: any) {
+  //     set({ error: error.response?.data?.message || error.message });
+  //   } finally {
+  //     set({ isLoading: false });
+  //   }
+  // },
 
   fetchTrendingSongs: async () => {
     set({ isLoading: true, error: null });

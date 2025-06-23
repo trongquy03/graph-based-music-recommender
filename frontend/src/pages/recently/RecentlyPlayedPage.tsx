@@ -92,7 +92,6 @@ const RecentlyPlayedPage = () => {
 
   return (
     <div className="h-full rounded-md">
-      <Topbar />
       <ScrollArea className="h-full rounded-md">
         <div className="p-6">
           <div className="flex items-center gap-4 mb-6">

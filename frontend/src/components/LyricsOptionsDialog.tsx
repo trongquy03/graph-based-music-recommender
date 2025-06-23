@@ -13,7 +13,7 @@ import { toast } from "react-hot-toast";
 
 interface Props {
   songId: string;
-  initialLyricsUrl?: string; // có thể dùng nếu muốn truyền url sẵn từ ngoài
+  initialLyricsUrl?: string; 
 }
 
 const LyricsOptionsDialog = ({ songId }: Props) => {
@@ -22,7 +22,7 @@ const LyricsOptionsDialog = ({ songId }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ✅ Luôn fetch lyrics khi mở Dialog
+  // Luôn fetch lyrics khi mở Dialog
   useEffect(() => {
     if (!isOpen) return;
     const fetchLyrics = async () => {
