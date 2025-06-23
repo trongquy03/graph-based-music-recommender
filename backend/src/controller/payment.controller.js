@@ -1,6 +1,7 @@
 import PayOS from '@payos/node';
 import { premiumPlans } from "../lib/premiumPlans.js";
 import { User } from "../models/user.model.js";
+import { Order } from "../models/order.model.js";
 
 const payos = new PayOS(
   process.env.PAYOS_CLIENT_ID,
@@ -11,14 +12,15 @@ const payos = new PayOS(
 export const createPayment = async (req, res, next) => {
   try {
     const { planId } = req.body;
+    const clerkId = req.auth.userId;
+
     const plan = premiumPlans[planId];
-    const userId = req.auth.userId;
+    if (!plan) return res.status(400).json({ message: "Gói không tồn tại" });
 
-    if (!plan) {
-      return res.status(400).json({ message: "Gói không tồn tại" });
-    }
+    const orderCode = Math.floor(Math.random() * 1_000_000_00);
 
-    const orderCode = Math.floor(Math.random() * 10000000);
+    // Tạo đơn trong DB
+    await Order.create({ orderCode, clerkId, planId });
 
     const paymentLink = await payos.createPaymentLink({
       orderCode,
@@ -26,52 +28,44 @@ export const createPayment = async (req, res, next) => {
       description: plan.name,
       returnUrl: "http://localhost:3000/premium-success",
       cancelUrl: "http://localhost:3000/premium-cancel",
-      webhookUrl: process.env.WEBHOOK_URL
-,
-      metadata: {
-        userId,
-        planId: plan.id,
-      },
+      webhookUrl: process.env.WEBHOOK_URL,
     });
 
     return res.json({ paymentUrl: paymentLink.checkoutUrl });
-  } catch (error) {
-    console.error("Lỗi tạo đơn hàng:", error?.response?.data || error.message);
-    next(error);
+  } catch (err) {
+    console.error("Lỗi tạo đơn hàng:", err.message);
+    next(err);
   }
 };
 
-export const payosWebhook = async (req, res, next) => {
-    const event = req.body;
+export const payosWebhook = async (req, res) => {
+  const event = req.body;
 
-  if (event.code === "PAYMENT_SUCCESS") {
-    const { metadata } = event.data;
-    const { userId, planId } = metadata;
-    const plan = premiumPlans[planId];
 
+  const orderCode = event.data?.orderCode;
+  if (!orderCode) return res.status(400).send("Thiếu orderCode");
+
+  try {
+    const order = await Order.findOne({ orderCode });
+    if (!order) return res.status(404).send("Không tìm thấy đơn hàng");
+
+    const plan = premiumPlans[order.planId];
     if (!plan) return res.status(400).send("Gói không hợp lệ");
 
-    // Tính thời hạn hết hạn PREMIUM
     const now = new Date();
     now.setDate(now.getDate() + plan.days);
 
-    try {
-      await User.findOneAndUpdate(
-        { clerkId: userId },
-        {
-          isPremium: true,
-          premiumUntil: now,
+    await User.findOneAndUpdate(
+      { clerkId: order.clerkId },
+      { isPremium: true, premiumUntil: now }
+    );
 
-        }
-      );
-      return res.status(200).send("Đã cập nhật PREMIUM");
-    } catch (err) {
-      console.error(" Lỗi cập nhật user:", err.message);
-      return res.status(500).send("Lỗi cập nhật");
-    }
+  
+    return res.status(200).send("Đã xử lý webhook");
+  } catch (err) {
+    console.error("Lỗi xử lý webhook:", err.message);
+    return res.status(500).send("Lỗi server");
   }
-
-  res.status(200).send("Webhook received");
 };
 
 

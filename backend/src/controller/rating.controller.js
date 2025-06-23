@@ -58,7 +58,8 @@ export const rateSong = async (req, res) => {
         `MERGE (u:User {id: $userId})
          MERGE (s:Song {id: $songId})
          MERGE (u)-[r:RATED]->(s)
-         SET r.rating = $rating`,
+         SET r.rating = $rating,
+          r.timestamp = datetime()`,
         { userId, songId, rating }
       );
 
@@ -70,12 +71,14 @@ export const rateSong = async (req, res) => {
 
     // Tạo quan hệ RATED mới trong Neo4j
     await session.run(
-      `MERGE (u:User {id: $userId})
-       MERGE (s:Song {id: $songId})
-       MERGE (u)-[r:RATED]->(s)
-       SET r.rating = $rating`,
-      { userId, songId, rating }
-    );
+    `MERGE (u:User {id: $userId})
+    MERGE (s:Song {id: $songId})
+    MERGE (u)-[r:RATED]->(s)
+    SET r.rating = $rating,
+        r.timestamp = datetime()`,
+    { userId, songId, rating }
+  );
+
 
     res.status(201).json({ message: "Song rated successfully." });
   } catch (err) {

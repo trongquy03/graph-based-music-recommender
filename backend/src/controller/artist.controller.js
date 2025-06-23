@@ -187,3 +187,119 @@ export const getFollowedArtistsCount = async (req, res) => {
   }
 };
 
+export const getRecommendedArtistsForUser = async (req, res) => {
+  const session = neo4jDriver.session();
+  const userId = req.auth?.userId;
+
+  try {
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const query = `
+      MATCH (u:User {id: $userId})-[:FOLLOWS]->(a1:Artist)
+      WITH collect(a1) AS followed
+      CALL {
+        WITH followed
+        CALL gds.nodeSimilarity.stream('artist-similarity-graph', {
+          relationshipWeightProperty: 'weight'
+        })
+        YIELD node1, node2, similarity
+        WITH gds.util.asNode(node1) AS a1, gds.util.asNode(node2) AS a2, similarity, followed
+        WHERE a1 IN followed AND NOT a2 IN followed
+        RETURN DISTINCT a2.id AS artistId, similarity
+        ORDER BY similarity DESC
+        LIMIT 20
+      }
+      RETURN artistId, similarity
+    `;
+
+    const result = await session.run(query, { userId });
+    let idsWithScores = result.records.map((r) => ({
+      id: r.get("artistId"),
+      similarity: r.get("similarity"),
+    }));
+
+    // Fallback nếu không có artist nào được gợi ý
+    if (idsWithScores.length === 0) {
+      const fallbackArtists = await Artist.find({})
+        .sort({ followers: -1 }) // follower count từ Mongo
+        .limit(20);
+
+      return res.status(200).json({
+        data: fallbackArtists.map((a) => ({
+          id: a._id.toString(),
+          name: a.name,
+          imageUrl: a.imageUrl,
+          score: a.rating || null,
+          similarity: null,
+        })),
+      });
+    }
+
+    const mongoArtists = await Artist.find({ _id: { $in: idsWithScores.map((x) => x.id) } });
+    const merged = idsWithScores.map((rec) => {
+      const details = mongoArtists.find((a) => a._id.toString() === rec.id);
+      return details ? {
+        id: rec.id,
+        name: details.name,
+        imageUrl: details.imageUrl,
+        score: details.rating || null,
+        similarity: rec.similarity,
+      } : null;
+    }).filter(Boolean);
+
+    res.status(200).json({ data: merged });
+  } catch (error) {
+    console.error("Error recommending artists:", error);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    await session.close();
+  }
+};
+
+
+export const getSimilarArtists = async (req, res) => {
+  const session = neo4jDriver.session();
+  const { artistId } = req.params;
+
+  try {
+    const query = `
+      MATCH (a1:Artist {id: $artistId})
+      CALL gds.nodeSimilarity.stream('artist-similarity-graph', {
+        relationshipWeightProperty: 'weight'
+      })
+      YIELD node1, node2, similarity
+      WITH gds.util.asNode(node1) AS a1, gds.util.asNode(node2) AS a2, similarity
+      WHERE a1.id = $artistId
+      RETURN a2.id AS artistId, similarity
+      ORDER BY similarity DESC
+      LIMIT 20
+    `;
+
+    const result = await session.run(query, { artistId });
+    const idsWithScores = result.records.map((r) => ({
+      id: r.get("artistId"),
+      similarity: r.get("similarity"),
+    }));
+
+    const mongoArtists = await Artist.find({ _id: { $in: idsWithScores.map((x) => x.id) } });
+    const merged = idsWithScores.map((rec) => {
+      const details = mongoArtists.find((a) => a._id.toString() === rec.id);
+      return details ? {
+        id: rec.id,
+        name: details.name,
+        imageUrl: details.imageUrl,
+        score: details.rating || null,
+        similarity: rec.similarity,
+      } : null;
+    }).filter(Boolean);
+
+    res.status(200).json({ data: merged });
+  } catch (error) {
+    console.error("Error fetching similar artists:", error);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    await session.close();
+  }
+};
+
+

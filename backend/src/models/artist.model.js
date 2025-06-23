@@ -12,6 +12,18 @@ const artistSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    country: {
+      type: String,
+      default: ""
+    },
+    tags: [{
+      name: { type: String, required: true },
+      type: {
+        type: String,
+        enum: ["Genre", "Mood", "Country", "Era", "Unknown"],
+        default: "Unknown"
+      }
+    }],
     bio: {
         type: String,
         default: "",

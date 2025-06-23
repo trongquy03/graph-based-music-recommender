@@ -54,4 +54,19 @@ export const uploadRawToCloudinary = async (filePath) => {
   }
 };
 
+export const uploadToCloudinary = async (filePath, folder = "karaoke") => {
+  try {
+    const result = await cloudinary.uploader.upload(filePath, {
+      resource_type: "video", // vì file là .mp3
+      folder,
+    });
+    console.log("Uploaded to Cloudinary (karaoke):", result.secure_url);
+    return result;
+  } catch (err) {
+    console.error("Failed to upload to Cloudinary:", err);
+    throw err;
+  }
+};
+
+
 export default cloudinary;

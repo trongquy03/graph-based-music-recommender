@@ -15,7 +15,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 export const generateLyricsFromCloudinaryUrl = async (audioUrl) => {
   try {
-    console.log("⬇️ Downloading audio from:", audioUrl);
+    console.log("Downloading audio from:", audioUrl);
 
     // 1. Download audio to temp file
     const res = await axios.get(audioUrl, {

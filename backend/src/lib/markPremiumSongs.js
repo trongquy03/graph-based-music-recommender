@@ -9,7 +9,7 @@ const markPremiumSongs = async () => {
 
   const allSongs = await Song.find();
   const total = allSongs.length;
-  const targetCount = Math.floor(total * 0.4);
+  const targetCount = Math.floor(total * 0.3);
 
   // Shuffle mảng và chọn ngẫu nhiên 40%
   const shuffled = allSongs.sort(() => 0.5 - Math.random());

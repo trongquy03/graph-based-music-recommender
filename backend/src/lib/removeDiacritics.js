@@ -5,3 +5,5 @@ export const removeVietnameseTones = (str) => {
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D");
 };
+
+export default removeVietnameseTones;

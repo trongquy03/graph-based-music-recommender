@@ -1,7 +1,11 @@
 import { Song } from "../models/song.model.js";
 import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
-import { neo4jLocal  } from "../lib/db.js";
+import fs from "fs";
+import { uploadToCloudinary } from "../lib/cloudinary.js";
+import { neo4jDriver  } from "../lib/db.js";
+import { splitAudioWithSpleeter } from "../lib/splitAudio.js";
+import { downloadFileToTemp } from "../lib/download.js";
 
 export const getAllSongs = async (req, res, next) => {
   try {
@@ -53,6 +57,7 @@ export const getAllSongs = async (req, res, next) => {
         imageUrl: 1,
         audioUrl: 1,
         lyricsUrl: 1,
+        youtubeUrl: 1,
         createdAt: 1,
         isPremium: 1,
         artist: {
@@ -98,6 +103,7 @@ export const getFeaturedSongs = async (req, res, next) => {
           imageUrl: 1,
           audioUrl: 1,
           lyricsUrl: 1,
+          youtubeUrl: 1,
           isPremium: 1,
           artist: {
             _id: "$artist._id",
@@ -113,39 +119,43 @@ export const getFeaturedSongs = async (req, res, next) => {
     next(error);
   }
 };
+export const getSimilarSongsById = async (req, res, next) => {
+  const { id } = req.params;
+  const session = neo4jDriver.session();
 
-// export const getMadeForYouSongs = async (req, res, next) => {
-//   const userId = req.auth?.userId || req.query.user; 
-//   if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  try {
+    const song = await Song.findById(id);
+    if (!song) return res.status(404).json({ message: "Không tìm thấy bài hát" });
 
-//   const session = neo4jDriver.session(); 
+    const mongoId = song._id.toString();
+    console.log("🎵 Song Mongo _id:", mongoId);
 
-//   try {
-//     const result = await session.run(
-//       `MATCH (u:User {id: $userId})-[:LISTENED|LIKES|RATED]->(s:Song)<-[:LISTENED|LIKES|RATED]-(other:User)
-//        MATCH (other)-[:LISTENED|LIKES|RATED]->(rec:Song)
-//        WHERE NOT (u)-[:LIKES|RATED]->(rec)
-//        RETURN DISTINCT rec.id AS songId
-//        LIMIT 15`,
-//       { userId }
-//     );
+    // 1. Truy vấn Neo4j theo id đã lưu trong node (s.id = MongoDB _id dưới dạng string)
+    const result = await session.run(`
+      MATCH (:Song {id: $id})-[:SIMILAR_TO]->(other:Song)
+      RETURN other.id AS id
+      LIMIT 6
+    `, { id: mongoId });
 
-//     const songIds = result.records.map((r) => r.get("songId"));
-//     const songs = await Song.find({ _id: { $in: songIds.map(id => new mongoose.Types.ObjectId(id)) } })
-//       .select("title artist imageUrl audioUrl lyricsUrl isPremium") 
-//       .populate("artist", "name");
+    const similarIds = result.records.map(r => r.get("id"));
+    console.log("🎯 Neo4j trả về _id:", similarIds);
 
+    if (!similarIds.length) return res.status(200).json([]);
 
-//     const sorted = songIds.map(id => songs.find(s => s._id.toString() === id)).filter(Boolean);
+    // 2. Truy vấn MongoDB theo _id
+    const songs = await Song.find({ _id: { $in: similarIds } })
+      .select("_id title imageUrl audioUrl lyricsUrl youtubeUrl isPremium artist")
+      .populate("artist", "name");
 
-//     res.status(200).json(sorted);
-//   } catch (error) {
-//     console.error("Graph recommendation error:", error);
-//     res.status(500).json({ message: "Failed to get recommendations" });
-//   } finally {
-//     await session.close(); 
-//   }
-// };
+    return res.status(200).json(songs);
+  } catch (error) {
+    console.error("❌ getSimilarSongsById error:", error.message);
+    return res.status(500).json({ message: "Lỗi lấy bài hát tương tự" });
+  } finally {
+    await session.close();
+  }
+};
+
 
 export const getMadeForYouSongs = async (req, res) => {
   const session = neo4jLocal.session();
@@ -172,7 +182,7 @@ export const getMadeForYouSongs = async (req, res) => {
     if (!recommendedTitles.length) return res.status(200).json([]);
 
     const allSongs = await Song.find()
-    .select("_id title imageUrl audioUrl lyricsUrl isPremium artist")
+    .select("_id title imageUrl audioUrl lyricsUrl isPremium youtubeUrl artist")
     .populate("artist", "name");
 
     // Tránh trùng lặp audioUrl
@@ -189,11 +199,12 @@ export const getMadeForYouSongs = async (req, res) => {
       usedSongIds.add(picked._id);
 
       madeForYou.push({
-        _id: picked._id,  // <<< RẤT QUAN TRỌNG
+        _id: picked._id, 
         title,
         imageUrl: picked.imageUrl,
         audioUrl: picked.audioUrl,
         lyricsUrl: picked.lyricsUrl,
+        youtubeUrl: picked.youtubeUrl,
         isPremium: picked.isPremium,
         artist: picked.artist,
       });
@@ -210,6 +221,106 @@ export const getMadeForYouSongs = async (req, res) => {
     await session.close();
   }
 };
+export const recommendSongs = async (req, res) => {
+  const userId = req.auth?.userId;
+  const session = neo4jDriver.session();
+   if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    // STEP 1: Lấy 5 bài user tương tác mạnh nhất
+    const interactionQuery = `
+     CALL {
+        MATCH (u:User {id: $userId})-[r:LISTENED_TO]->(s:Song)
+        WHERE r.timestamp IS NOT NULL
+        WITH s.id AS songId,
+            2.0 / (1 + duration.inDays(r.timestamp, datetime()).days) AS score
+        RETURN songId, score
+        UNION
+        MATCH (u:User {id: $userId})-[r:LIKES]->(s:Song)
+        WHERE r.timestamp IS NOT NULL
+        WITH s.id AS songId,
+            4.0 / (1 + duration.inDays(r.timestamp, datetime()).days) AS score
+        RETURN songId, score
+        UNION
+        MATCH (u:User {id: $userId})-[r:RATED]->(s:Song)
+        WHERE r.timestamp IS NOT NULL
+        WITH s.id AS songId,
+            r.rating / (1 + duration.inDays(r.timestamp, datetime()).days) AS score
+        RETURN songId, score
+      }
+      WITH songId, sum(score) AS totalScore
+      ORDER BY totalScore DESC
+      LIMIT 5
+      RETURN songId
+    `;
+    const interactionResult = await session.run(interactionQuery, { userId });
+    const baseSongs = interactionResult.records.map(r => r.get('songId'));
+
+    // STEP 2: Nếu không có tương tác → fallback bằng PageRank toàn đồ thị
+    if (baseSongs.length === 0) {
+      const fallbackQuery = `
+        CALL gds.pageRank.stream('song-graph')
+        YIELD nodeId, score
+        RETURN gds.util.asNode(nodeId).id AS songId, score
+        ORDER BY score DESC
+        LIMIT 9
+      `;
+      const fallbackResult = await session.run(fallbackQuery);
+      const fallbackIds = fallbackResult.records.map(r => r.get('songId'));
+
+      const songs = await Song.find({ _id: { $in: fallbackIds } })
+        .select('_id title imageUrl audioUrl lyricsUrl youtubeUrl isPremium artist')
+        .populate('artist', 'name');
+
+      return res.json({ type: 'fallback', songs });
+    }
+
+    // STEP 3: Lấy bài tương tự từ SIMILAR_TO
+    const similarQuery = `
+      UNWIND $baseSongs AS bs
+      MATCH (:Song {id: bs})-[:SIMILAR_TO]->(rec:Song)
+      WHERE NOT rec.id IN $baseSongs
+      RETURN DISTINCT rec.id AS candidate
+      LIMIT 50
+    `;
+    const similarResult = await session.run(similarQuery, { baseSongs });
+    const candidateIds = similarResult.records.map(r => r.get('candidate'));
+
+    if (candidateIds.length === 0) {
+      return res.json({ type: 'similarity-empty', songs: [] });
+    }
+
+    // STEP 4: Chạy PageRank để sắp xếp lại các bài tương tự
+   const pageRankQuery = `
+      CALL gds.pageRank.stream('song-graph')
+      YIELD nodeId, score
+      WITH gds.util.asNode(nodeId).id AS songId, score
+      WHERE songId IN $candidates
+      RETURN songId, score
+      ORDER BY score DESC
+      LIMIT 9
+    `;
+
+    const rankedResult = await session.run(pageRankQuery, {
+      candidates: candidateIds
+    });
+    const topSongIds = rankedResult.records.map(r => r.get('songId'));
+
+    // STEP 5: Truy vấn MongoDB để lấy thông tin bài hát
+    const songs = await Song.find({ _id: { $in: topSongIds } })
+      .select('_id title imageUrl audioUrl lyricsUrl youtubeUrl isPremium artist')
+      .populate('artist', 'name');
+
+    return res.json({ type: 'personalized', songs });
+  } catch (err) {
+    console.error(' Recommendation error:', err);
+    res.status(500).json({ message: 'Lỗi gợi ý bài hát' });
+  } finally {
+    await session.close();
+  }
+};
+
+
 
 
 export const getTrendingSongs = async (req, res, next) => {
@@ -232,6 +343,7 @@ export const getTrendingSongs = async (req, res, next) => {
           imageUrl: 1,
           audioUrl: 1,
           lyricsUrl: 1,
+          youtubeUrl: 1,
           isPremium: 1,
           artist: {
             _id: "$artist._id",
@@ -246,6 +358,35 @@ export const getTrendingSongs = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getSongById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const song = await Song.findById(id).populate("artist", "name");
+    if (!song) {
+      return res.status(404).json({ message: "Không tìm thấy bài hát" });
+    }
+
+    res.status(200).json({
+      _id: song._id,
+      title: song.title,
+      imageUrl: song.imageUrl,
+      audioUrl: song.audioUrl,
+      lyricsUrl: song.lyricsUrl,
+      youtubeUrl: song.youtubeUrl,
+      isPremium: song.isPremium,
+      tags: song.tags || [], // ✅ TRẢ VỀ TAGS
+      artist: song.artist
+        ? { _id: song.artist._id, name: song.artist.name }
+        : null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 
 export const streamSong = async (req, res) => {
   const userId = req.auth.userId;
@@ -290,5 +431,44 @@ export const streamSong = async (req, res) => {
   } catch (err) {
     console.error("Lỗi streamSong:", err.message);
     res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+};
+
+export const createKaraokeForSong = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const song = await Song.findById(id);
+    if (!song) return res.status(404).json({ error: 'Không tìm thấy bài hát' });
+
+    if (song.karaokeUrl) {
+      return res.status(200).json({ message: 'Đã có karaoke sẵn', karaokeUrl: song.karaokeUrl });
+    }
+
+    // 1. Download audio file
+    const tempInputPath = await downloadFileToTemp(song.audioUrl);
+
+    // 2. Tách vocal → tạo accompaniment.wav và convert sang .mp3
+    const { mp3Path, wavPath } = await splitAudioWithSpleeter(tempInputPath, 'outputs');
+
+    // 3. Upload accompaniment.mp3 lên Cloudinary
+    const uploadRes = await uploadToCloudinary(mp3Path, 'karaoke');
+
+    // 4. Lưu karaokeUrl vào DB
+    song.karaokeUrl = uploadRes.secure_url;
+    await song.save();
+
+    // 5. Cleanup file tạm
+    [tempInputPath, mp3Path, wavPath].forEach((file) => {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    });
+
+    res.status(200).json({
+      message: 'Đã tạo karaoke thành công',
+      karaokeUrl: song.karaokeUrl,
+    });
+  } catch (err) {
+    console.error('Lỗi khi tạo karaoke:', err);
+    res.status(500).json({ error: 'Lỗi nội bộ khi xử lý karaoke' });
   }
 };

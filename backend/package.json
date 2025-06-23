@@ -26,6 +26,7 @@
     "mongoose": "^8.14.1",
     "multer": "^2.0.0",
     "neo4j-driver": "^5.28.1",
+    "node-fetch": "^3.3.2",
     "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
   },

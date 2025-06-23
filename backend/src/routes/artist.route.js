@@ -1,9 +1,11 @@
 import { Router } from "express";
-import { getAllArtists, getArtistById, followArtist, unfollowArtist, getArtistFollowersCount, isFollowingArtist, getFollowedArtists, getFollowedArtistsCount } from "../controller/artist.controller.js";
+import { getAllArtists, getArtistById, followArtist, unfollowArtist, getArtistFollowersCount, isFollowingArtist, getFollowedArtists, getFollowedArtistsCount, getRecommendedArtistsForUser, getSimilarArtists } from "../controller/artist.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 const router = Router();
 
 router.get("/", getAllArtists);
+router.get("/recommendations", protectRoute, getRecommendedArtistsForUser);
+router.get("/:artistId/similar", getSimilarArtists);
 router.get("/me/following", protectRoute, getFollowedArtists);
 router.get("/me/following/count", protectRoute, getFollowedArtistsCount );
 router.get("/:artistId/followers/count", getArtistFollowersCount);

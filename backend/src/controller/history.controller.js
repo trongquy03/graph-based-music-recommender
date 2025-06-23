@@ -13,9 +13,9 @@ export const recordListening = async (req, res) => {
         await session.run(
         `MERGE (u:User {id: $userId})
         MERGE (s:Song {id: $songId})
-        MERGE (u)-[r:LISTENED]->(s)
-        ON CREATE SET r.count = 1
-        ON MATCH SET r.count = r.count + 1`,
+        MERGE (u)-[r:LISTENED_TO]->(s)
+        ON CREATE SET r.count = 1, r.timestamp = datetime()
+        ON MATCH SET r.count = r.count + 1,r.timestamp = datetime()`,
         { userId, songId }
     );
 

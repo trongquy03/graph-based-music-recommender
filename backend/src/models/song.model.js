@@ -20,7 +20,11 @@ const songSchema = new mongoose.Schema({
   },
   audioUrl: {
     type: String,
-    required: true,
+    required: false,
+  },
+  karaokeUrl: {
+    type: String,
+    default: "",
   },
   duration: {
     type: Number,
@@ -35,18 +39,40 @@ const songSchema = new mongoose.Schema({
   artist_normalized: String,
    mood: {
     type: String,
-    enum: ["happy", "sad", "chill", "motivational"],
+    enum: ["happy", "sad", "chill", "motivational", "none"],
     default: "chill"
   },
   genre: {
     type: String,
-    enum: ["pop", "rock", "hiphop", "ballad", "rap", "edm", "rnb", "country", "lofi", "movie"],
+    enum: ["pop", "rock", "hiphop", "ballad", "rap", "edm", "rnb", "country", "lofi", "movie","none"],
     required: true
   },
   lyricsUrl: {
     type: String,
     default: "",
   },
+  transcript: [{
+    word: String,
+    start: Number,
+    end: Number
+  }],
+  // youtubeId: {
+  //   type: String,
+  //   unique: true,
+  //   sparse: true
+  // },
+  youtubeUrl: {
+    type: String,
+    default: ""
+  },
+  tags: [{
+    name: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ["Genre", "Mood", "Country", "Era", "Unknown"],
+      default: "Unknown"
+    }
+  }],
   isPremium: Boolean,
   featured: { type: Boolean, default: false },
 }, { timestamps: true });

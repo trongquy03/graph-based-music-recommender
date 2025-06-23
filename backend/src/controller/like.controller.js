@@ -32,12 +32,14 @@ export const likeSong = async (req, res) => {
 
         const like = new Like({ user: userId, song: songId });
         await like.save();
-            await session.run(
+        await session.run(
             `MERGE (u:User {id: $userId})
             MERGE (s:Song {id: $songId})
-            MERGE (u)-[:LIKES]->(s)`,
+            MERGE (u)-[r:LIKES]->(s)
+            SET r.timestamp = datetime()`,
             { userId, songId }
-        );
+            );
+
 
         res.status(201).json({ message: "Song liked successfully!" });
     } catch (err) {

@@ -22,6 +22,8 @@ import artistRoutes from "./routes/artist.route.js"
 import cloudinaryRoutes from "./routes/cloudinary.route.js"
 import paymentRoutes from "./routes/payment.route.js"
 import commentRoutes from "./routes/comment.route.js"
+import aiChatRoutes from "./routes/aichat.route.js"
+import generateRoutes from "./routes/generate.route.js"
 import { connectDB } from "./lib/db.js";
 
 
@@ -43,7 +45,8 @@ app.use(cors(
 ))
 
 app.use(express.json());
-app.use(clerkMiddleware()); // auth request
+
+app.use(clerkMiddleware());
 app.use(fileUpload({
     useTempFiles:true,
     tempFileDir: path.join(__dirname, "tmp"),
@@ -67,6 +70,8 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/history", historyRoutes);
+app.use("/api/ai-chat", aiChatRoutes);
+app.use("/api/generate", generateRoutes);
 app.use("/api/cloudinary", cloudinaryRoutes);
 
 
