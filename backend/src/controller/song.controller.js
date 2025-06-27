@@ -128,9 +128,7 @@ export const getSimilarSongsById = async (req, res, next) => {
     if (!song) return res.status(404).json({ message: "Không tìm thấy bài hát" });
 
     const mongoId = song._id.toString();
-    console.log("🎵 Song Mongo _id:", mongoId);
 
-    // 1. Truy vấn Neo4j theo id đã lưu trong node (s.id = MongoDB _id dưới dạng string)
     const result = await session.run(`
       MATCH (:Song {id: $id})-[:SIMILAR_TO]->(other:Song)
       RETURN other.id AS id
@@ -138,7 +136,6 @@ export const getSimilarSongsById = async (req, res, next) => {
     `, { id: mongoId });
 
     const similarIds = result.records.map(r => r.get("id"));
-    console.log("🎯 Neo4j trả về _id:", similarIds);
 
     if (!similarIds.length) return res.status(200).json([]);
 
@@ -149,7 +146,7 @@ export const getSimilarSongsById = async (req, res, next) => {
 
     return res.status(200).json(songs);
   } catch (error) {
-    console.error("❌ getSimilarSongsById error:", error.message);
+    console.error("getSimilarSongsById error:", error.message);
     return res.status(500).json({ message: "Lỗi lấy bài hát tương tự" });
   } finally {
     await session.close();

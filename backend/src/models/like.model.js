@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const likeSchema = new mongoose.Schema({
     user: {
-        type: String, // Clerk userId
+        type: String, 
         required: true
     },
     song: {

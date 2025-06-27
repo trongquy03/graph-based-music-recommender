@@ -19,6 +19,7 @@ import ratingRoutes from "./routes/rating.route.js"
 import historyRoutes from "./routes/history.route.js"
 import searchRoutes from "./routes/search.route.js"
 import artistRoutes from "./routes/artist.route.js"
+import playlistRoutes from "./routes/playlist.route.js"
 import cloudinaryRoutes from "./routes/cloudinary.route.js"
 import paymentRoutes from "./routes/payment.route.js"
 import commentRoutes from "./routes/comment.route.js"
@@ -69,6 +70,7 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/ratings", ratingRoutes);
+app.use("/api/playlists", playlistRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/ai-chat", aiChatRoutes);
 app.use("/api/generate", generateRoutes);
