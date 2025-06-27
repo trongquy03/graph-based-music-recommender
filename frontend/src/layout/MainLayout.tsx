@@ -7,6 +7,9 @@ import { useEffect, useState } from "react";
 import CommentPanel from "@/pages/comment/CommentPanel";
 import { MiniAIChat } from "@/components/MiniAIChat";
 import Topbar from "@/components/Topbar";
+import NewLeftSidebar from "./components/NewLeftSidebar";
+import { SignedIn } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 
 const MainLayout = () => {
     const [commentOpen, setCommentOpen] = useState(false);
@@ -33,10 +36,15 @@ const MainLayout = () => {
             <ResizablePanelGroup direction="horizontal" className="flex-1 flex h-full overflow-hidden p-2">
                 <AudioPlayer/>
                 {/* Left sidebar */}
-                <ResizablePanel defaultSize={10} minSize={isMobile ?0:10} maxSize={25}>
+                {/* <ResizablePanel defaultSize={10} minSize={isMobile ?0:10} maxSize={25}>
                     <LeftSidebar />
+                </ResizablePanel> */}
+                
+                <SignedIn>
+                <ResizablePanel defaultSize={9.5} minSize={isMobile ?0:10} maxSize={25}>
+                    <NewLeftSidebar />
                 </ResizablePanel>
-
+                </SignedIn>
                 <ResizableHandle className="w-2 bg-black rounded-lg transition-colors" />
 
                 {/* Main content */}
@@ -66,7 +74,7 @@ const MainLayout = () => {
 
 
             </ResizablePanelGroup>
-             <MiniAIChat />
+            
             <PlaybackControls />
         </div>
   )

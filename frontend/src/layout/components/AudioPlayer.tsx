@@ -73,12 +73,10 @@ const AudioPlayer = () => {
       }
 
       if (!isPremium && !isAdMode) {
-        triggerAd();
-        audio.src = "/songs/ads.mp3";
-        audio.load();
-        audio.play().catch(() => {});
-        return;
+        triggerAd(); // chỉ gọi để bật banner & đếm ngược
+        return;      // không phát nhạc ngay
       }
+
 
       if (isAdMode) {
         setIsAdMode(false);
@@ -159,6 +157,32 @@ const AudioPlayer = () => {
     setSkipEnabled(false);
     playNext();
   };
+
+  useEffect(() => {
+  if (!isAdMode) return;
+
+  const audio = audioRef.current;
+  if (!audio) return;
+
+  audio.src = "/songs/ads.mp3";
+  audio.load();
+  audio.play().catch((err) => {
+    console.warn("Failed to play ad audio:", err.message);
+  });
+}, [isAdMode]);
+
+useEffect(() => {
+  const handleTriggerAd = () => {
+    triggerAd(); // gọi local
+  };
+
+  window.addEventListener("trigger-ad", handleTriggerAd);
+  return () => {
+    window.removeEventListener("trigger-ad", handleTriggerAd);
+  };
+}, []);
+
+
 
   return (
     <>

@@ -3,6 +3,7 @@ import { useUserRecommenderStore } from "@/stores/useRecommenderStore"
 import { useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SignedIn } from "@clerk/clerk-react";
 import SectionGrid from "./components/SectionGrid";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import ArtistSimilarity from "./components/ArtistSimilarity";
@@ -45,9 +46,13 @@ const HomePage = () => {
           {/* <FeaturedCarousel /> */}
           {/* <AlbumBannerCarousel /> */}
           <ArtistSimilarity />
-          <p className="text-2xl font-bold mb-6">Gợi ý cho bạn</p>
+          
           {/* <FeaturedSection/> */}
-          <PersonalizedSection/>
+          <SignedIn>
+            <p className="text-2xl font-bold mb-6">Gợi ý cho bạn</p>
+            <PersonalizedSection/>
+          </SignedIn>
+          
 
         <div className="space-y-8">
           {/* <SectionGrid title="Gợi ý cho bạn" songs={madeForYouSongs} isLoading={isLoading}/> */}

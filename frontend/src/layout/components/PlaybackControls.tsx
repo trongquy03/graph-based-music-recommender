@@ -27,6 +27,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { usePremiumStore } from "@/stores/usePremiumStore";
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -105,16 +106,33 @@ export const PlaybackControls = () => {
       },
 
       onStateChange: (event: any) => {
-        // 0 = ended
-        if (event.data === window.YT.PlayerState.ENDED) {
-          if (isLooping) {
-            event.target.seekTo(0);
-            event.target.playVideo();
-          } else {
-            playNext(); 
-          }
-        }
-      },
+  if (event.data === window.YT.PlayerState.ENDED) {
+    const { isPremium, isAdMode } = {
+      isPremium: usePremiumStore.getState().isPremium,
+      isAdMode: usePlayerStore.getState().isPlayingAd,
+    };
+
+    if (isPremium) {
+      // Premium → vẫn chuyển bài như thường
+      if (isLooping) {
+        event.target.seekTo(0);
+        event.target.playVideo();
+      } else {
+        usePlayerStore.getState().playNext();
+      }
+    } else {
+      // Non-premium: nếu chưa vào chế độ quảng cáo → vào quảng cáo
+      if (!isAdMode) {
+        window.dispatchEvent(new Event("trigger-ad"));
+      } else {
+
+        usePlayerStore.getState().setIsPlayingAd(false);
+        usePlayerStore.getState().playNext();
+      }
+    }
+  }
+}
+
     },
     playerVars: {
       autoplay: 0,

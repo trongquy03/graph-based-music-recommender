@@ -54,16 +54,15 @@ const LikedSongsPage = () => {
     <div className="h-full rounded-md">
       <ScrollArea className="h-full rounded-md">
         <div className="relative min-h-full">
-          <div className="absolute inset-0 bg-gradient-to-b from-pink-500/80 via-zinc-900/80 to-zinc-900 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b via-zinc-900/80 to-zinc-900 pointer-events-none" />
           <div className="relative z-10">
             <div className="flex p-6 gap-6 pb-8">
               {/* <div className="w-[240px] h-[240px] shadow-xl rounded bg-gradient-to-br from-pink-500 to-purple-700 flex items-center justify-center text-white text-6xl font-bold">❤</div> */}
               <div className="flex flex-col justify-end">
-                <p className="text-sm font-medium">Playlist</p>
-                <h1 className="text-7xl font-bold my-4">Bài hát yêu thích</h1>
-                <div className="flex items-center gap-2 text-sm text-zinc-100">
+                <h1 className="text-3xl font-bold my-4">Bài hát yêu thích</h1>
+                {/* <div className="flex items-center gap-2 text-sm text-zinc-100">
                   <span className="font-medium text-white">{likedSongs.length} bài hát</span>
-                </div>
+                </div> */}
               </div>
             </div>
 

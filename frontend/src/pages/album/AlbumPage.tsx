@@ -1,4 +1,4 @@
-import Topbar from "@/components/Topbar";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore } from "@/stores/useMusicStore";
@@ -41,7 +41,6 @@ const AlbumPage = () => {
 
     return (
         <div className="h-full rounded-md">
-            <Topbar />
             <ScrollArea className="h-full rounded-md">
                 
                 {/* Main content */}

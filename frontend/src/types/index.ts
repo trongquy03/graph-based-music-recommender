@@ -74,5 +74,31 @@ export interface LyricLine {
   text: string;
 }
 
+export interface PlaylistSongEntry {
+  song: Song;
+  addedAt: string;
+}
+
+export interface Playlist {
+  _id: string;
+  name: string;
+  isPublic: boolean;
+  owner: string;
+  songs: PlaylistSongEntry[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy: {
+    fullName: string;
+    id: string;
+  };
+}
+
+export interface SearchResults {
+  songs: Song[];
+  albums: Album[];
+  artists: Artist[];
+}
+
+
 
 export * from "./clerk"; 

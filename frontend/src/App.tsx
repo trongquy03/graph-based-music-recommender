@@ -21,6 +21,8 @@ import PremiumPage from "./pages/premium/PremiumPage";
 import PremiumSuccessPage from "./pages/premium/components/PremiumSuccessPage";
 import PremiumCancelPage from "./pages/premium/components/PremiumCancelPage";
 import MusicDetailPage from "./pages/music/MusicDetailPage";
+import PlaylistPage from "./pages/playlist/PlaylistPage";
+import PlaylistDetailPage from "./pages/playlist/components/PlaylistDetailPage";
 function App() {
   return (
     <>
@@ -40,6 +42,8 @@ function App() {
           <Route path="/artists/:artistId" element={<ArtistDetailPage/>} />
           <Route path="/artists/:artistId/songs" element={<ArtistSongsPage/>} />
           <Route path="/liked-songs" element={<LikedSongPage/>} />
+          <Route path="/playlists" element={<PlaylistPage/>} />
+          <Route path="/playlists/:playlistId" element={<PlaylistDetailPage/>} />
           <Route path="/search" element={<SearchPage/>} />
           <Route path="/music/:songId" element={<MusicDetailPage/>} />
           <Route path="/recently-played" element={<RecentlyPlayedPage/>} />
