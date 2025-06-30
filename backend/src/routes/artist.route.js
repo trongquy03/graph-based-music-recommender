@@ -4,7 +4,7 @@ import { protectRoute } from "../middleware/auth.middleware.js";
 const router = Router();
 
 router.get("/", getAllArtists);
-router.get("/recommendations", protectRoute, getRecommendedArtistsForUser);
+router.get("/recommendations", getRecommendedArtistsForUser);
 router.get("/:artistId/similar", getSimilarArtists);
 router.get("/me/following", protectRoute, getFollowedArtists);
 router.get("/me/following/count", protectRoute, getFollowedArtistsCount );

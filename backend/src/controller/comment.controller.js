@@ -90,9 +90,10 @@ export const deleteComment = async (req, res) => {
 export const getCommentsBySong = async (req, res) => {
   const { songId } = req.params;
   const comments = await Comment.find({ song: songId })
-    .populate("user", "fullName imageUrl")
+    .populate("user", "fullName imageUrl clerkId") 
     .sort({ createdAt: -1 })
     .lean();
 
   res.status(200).json(comments);
 };
+

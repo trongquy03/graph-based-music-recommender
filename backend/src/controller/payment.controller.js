@@ -21,6 +21,7 @@ export const createPayment = async (req, res, next) => {
 
     // Tạo đơn trong DB
     await Order.create({ orderCode, clerkId, planId });
+    console.log("m ngu:", process.env.WEBHOOK_URL);
 
     const paymentLink = await payos.createPaymentLink({
       orderCode,

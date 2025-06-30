@@ -145,7 +145,7 @@ export const deleteArtist = async (req, res, next) => {
 export const createSong = async (req, res, next) => {
   const session = neo4jDriver.session();
   try {
-    const { title, artistId, albumId, duration, audioUrl, imageUrl, genre, mood } = req.body;
+   const { title, artistId, albumId, duration, audioUrl, imageUrl, genre, mood, youtubeUrl, isPremium } = req.body;
 
     if (!title || !artistId || !audioUrl || !imageUrl || !genre) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -163,8 +163,11 @@ export const createSong = async (req, res, next) => {
       genre,
       mood,
       lyricsUrl,
+      youtubeUrl: youtubeUrl || "",
+      isPremium: isPremium || false,
       title_normalized: removeVietnameseTones(title.toLowerCase()),
     });
+
 
     await song.save();
 
@@ -223,7 +226,10 @@ export const updateSong = async (req, res, next) => {
       imageUrl,
       genre,
       mood,
+      youtubeUrl,
+      isPremium
     } = req.body;
+
 
     const existingSong = await Song.findById(id);
     if (!existingSong) return res.status(404).json({ message: "Song not found" });
@@ -253,7 +259,7 @@ export const updateSong = async (req, res, next) => {
 
     const updatedSong = await Song.findByIdAndUpdate(
       id,
-      {
+        {
         title,
         artist: artistId,
         albumId: safeAlbumId,
@@ -262,6 +268,8 @@ export const updateSong = async (req, res, next) => {
         imageUrl: imageUrl || existingSong.imageUrl,
         genre: genre || existingSong.genre,
         mood: mood || existingSong.mood,
+        youtubeUrl: youtubeUrl ?? existingSong.youtubeUrl,
+        isPremium: typeof isPremium === "boolean" ? isPremium : existingSong.isPremium,
         title_normalized: removeVietnameseTones(title.toLowerCase()),
       },
       { new: true }
