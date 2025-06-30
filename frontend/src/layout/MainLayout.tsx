@@ -10,6 +10,7 @@ import Topbar from "@/components/Topbar";
 import NewLeftSidebar from "./components/NewLeftSidebar";
 import { SignedIn } from "@clerk/clerk-react";
 import { useAuth } from "@clerk/clerk-react";
+import { AudioProvider } from "./components/AudioContext";
 
 const MainLayout = () => {
     const [commentOpen, setCommentOpen] = useState(false);
@@ -31,6 +32,7 @@ const MainLayout = () => {
         return () => document.removeEventListener("toggle-comment-panel", toggle);
         }, []);
     return (
+         <AudioProvider>
         <div className="h-screen bg-black text-white flex flex-col">
             <Topbar/>
             <ResizablePanelGroup direction="horizontal" className="flex-1 flex h-full overflow-hidden p-2">
@@ -77,6 +79,7 @@ const MainLayout = () => {
             
             <PlaybackControls />
         </div>
+        </AudioProvider>
   )
 }
 

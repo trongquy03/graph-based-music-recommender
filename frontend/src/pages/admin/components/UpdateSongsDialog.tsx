@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { uploadToCloudinarySigned  } from "@/lib/uploadToCloudinarySigned";
+import { uploadToCloudinarySigned } from "@/lib/uploadToCloudinarySigned";
 import { Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 import { axiosInstance } from "@/lib/axios";
@@ -43,6 +43,8 @@ const UpdateSongDialog = ({ song }: Props) => {
     duration: String(song.duration ?? 0),
     genre: (song.genre as GenreEnum) ?? GenreEnum.None,
     mood: (song.mood as MoodEnum) ?? MoodEnum.None,
+    youtubeUrl: song.youtubeUrl || "",
+    isPremium: song.isPremium ?? false,
   });
 
   const [files, setFiles] = useState<{ audio: File | null; image: File | null }>({
@@ -54,62 +56,60 @@ const UpdateSongDialog = ({ song }: Props) => {
     if (albums.length === 0) fetchAlbums();
   }, []);
 
+  const handleSubmit = async () => {
+    setIsLoading(true);
 
+    try {
+      const { title, artist, album, duration, genre, mood, youtubeUrl, isPremium } = updatedSong;
 
-const handleSubmit = async () => {
-  setIsLoading(true);
+      if (!title.trim()) {
+        toast.error("Please enter a song title");
+        return;
+      }
 
-  try {
-    const { title, artist, album, duration, genre, mood } = updatedSong;
+      if (!artist || artist === "none") {
+        toast.error("Please select an artist");
+        return;
+      }
 
-    if (!title.trim()) {
-      toast.error("Please enter a song title");
-      return;
+      if (!duration || isNaN(Number(duration))) {
+        toast.error("Please enter a valid duration");
+        return;
+      }
+
+      let audioUrl = song.audioUrl;
+      let imageUrl = song.imageUrl;
+
+      if (files.audio) {
+        audioUrl = await uploadToCloudinarySigned(files.audio, "auto");
+      }
+
+      if (files.image) {
+        imageUrl = await uploadToCloudinarySigned(files.image, "image");
+      }
+
+      await axiosInstance.put(`/admin/songs/${song._id}`, {
+        title: title.trim(),
+        artistId: artist,
+        albumId: album === "none" || !album ? null : album,
+        duration,
+        genre,
+        mood,
+        audioUrl,
+        imageUrl,
+        youtubeUrl: youtubeUrl?.trim() || "",
+        isPremium: isPremium ?? false,
+      });
+
+      toast.success("Song updated successfully");
+      fetchSongs(1, 20);
+      setDialogOpen(false);
+    } catch (err: any) {
+      toast.error("Failed to update song: " + err.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    if (!artist || artist === "none") {
-      toast.error("Please select an artist");
-      return;
-    }
-
-    if (!duration || isNaN(Number(duration))) {
-      toast.error("Please enter a valid duration");
-      return;
-    }
-
- 
-    let audioUrl = song.audioUrl;
-    let imageUrl = song.imageUrl;
-
-    if (files.audio) {
-      audioUrl = await uploadToCloudinarySigned(files.audio, "auto");
-    }
-
-    if (files.image) {
-      imageUrl = await uploadToCloudinarySigned(files.image, "image");
-    }
-
-    await axiosInstance.put(`/admin/songs/${song._id}`, {
-      title: title.trim(),
-      artistId: artist,
-      albumId: album === "none" || !album ? null : album,
-      duration,
-      genre,
-      mood,
-      audioUrl,
-      imageUrl,
-    });
-
-    toast.success("Song updated successfully");
-    fetchSongs(1, 20);
-    setDialogOpen(false);
-  } catch (err: any) {
-    toast.error("Failed to update song: " + err.message);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -179,9 +179,7 @@ const handleSubmit = async () => {
               }
               className="bg-zinc-800 border-zinc-700 rounded-md px-3 py-2 text-sm w-full"
             >
-              <option value="none" disabled>
-                Select genre...
-              </option>
+              <option value="none" disabled>Select genre...</option>
               {Object.values(GenreEnum)
                 .filter((g) => g !== GenreEnum.None)
                 .map((g) => (
@@ -223,6 +221,33 @@ const handleSubmit = async () => {
               }
               className="bg-zinc-800 border-zinc-700"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">YouTube URL (Optional)</label>
+            <Input
+              value={updatedSong.youtubeUrl}
+              onChange={(e) =>
+                setUpdatedSong({ ...updatedSong, youtubeUrl: e.target.value })
+              }
+              className="bg-zinc-800 border-zinc-700"
+              placeholder="https://youtube.com/..."
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isPremium"
+              checked={updatedSong.isPremium}
+              onChange={(e) =>
+                setUpdatedSong({ ...updatedSong, isPremium: e.target.checked })
+              }
+              className="accent-emerald-500"
+            />
+            <label htmlFor="isPremium" className="text-sm">
+              Premium song?
+            </label>
           </div>
 
           <div className="space-y-2">

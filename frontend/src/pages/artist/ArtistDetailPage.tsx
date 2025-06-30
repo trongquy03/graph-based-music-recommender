@@ -6,7 +6,6 @@ import { usePlayerStore } from "@/stores/usePlayerStore";
 import { FollowButton } from "./components/FollowButtonProps";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@clerk/clerk-react";
-import Topbar from "@/components/Topbar";
 import LikeButton from "../home/components/LikeButton";
 import PlayButton from "../home/components/PlayButton";
 import { Button } from "@/components/ui/button";

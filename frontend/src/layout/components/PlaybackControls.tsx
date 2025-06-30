@@ -10,6 +10,7 @@ import { useAuth } from "@clerk/clerk-react";
 import KaraokePanel from "@/components/KaraokePanel";
 import CommentPanel from "@/pages/comment/CommentPanel";
 import { ytPlayerRef } from "@/lib/youtubePlayer";
+import { useAudioRef } from "./AudioContext";
 import clsx from "clsx";
 import {
   MessageSquare,
@@ -72,7 +73,8 @@ export const PlaybackControls = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showRatingSelector, setShowRatingSelector] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useAudioRef();
 
   useEffect(() => {
     if (typeof window.YT === "undefined") {
@@ -82,57 +84,46 @@ export const PlaybackControls = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!currentSong || currentSong.audioUrl || !currentSong.youtubeUrl) return;
+useEffect(() => {
+  if (!currentSong || currentSong.audioUrl || !currentSong.youtubeUrl) return;
 
-    const ytDiv = document.getElementById("hidden-youtube");
-    if (!ytDiv) return;
+  const ytDiv = document.getElementById("hidden-youtube");
+  if (!ytDiv) return;
 
-    const player = new window.YT.Player("hidden-youtube", {
+  const player = new window.YT.Player("hidden-youtube", {
     videoId: extractYoutubeId(currentSong.youtubeUrl),
     events: {
-/**
- * Initializes the YouTube player when the API is ready and starts video playback.
- *
- * @param event - The event object containing the player target.
- */
-
       onReady: (event: any) => {
         setYtPlayer(event.target);
         ytPlayerRef.current = event.target;
         if (isPlaying) {
-          event.target.playVideo(); 
+          event.target.playVideo();
         }
       },
-
       onStateChange: (event: any) => {
-  if (event.data === window.YT.PlayerState.ENDED) {
-    const { isPremium, isAdMode } = {
-      isPremium: usePremiumStore.getState().isPremium,
-      isAdMode: usePlayerStore.getState().isPlayingAd,
-    };
+        if (event.data === window.YT.PlayerState.ENDED) {
+          const { isPremium, isAdMode } = {
+            isPremium: usePremiumStore.getState().isPremium,
+            isAdMode: usePlayerStore.getState().isPlayingAd,
+          };
 
-    if (isPremium) {
-      // Premium → vẫn chuyển bài như thường
-      if (isLooping) {
-        event.target.seekTo(0);
-        event.target.playVideo();
-      } else {
-        usePlayerStore.getState().playNext();
-      }
-    } else {
-      // Non-premium: nếu chưa vào chế độ quảng cáo → vào quảng cáo
-      if (!isAdMode) {
-        window.dispatchEvent(new Event("trigger-ad"));
-      } else {
-
-        usePlayerStore.getState().setIsPlayingAd(false);
-        usePlayerStore.getState().playNext();
-      }
-    }
-  }
-}
-
+          if (isPremium) {
+            if (isLooping) {
+              event.target.seekTo(0);
+              event.target.playVideo();
+            } else {
+              usePlayerStore.getState().playNext();
+            }
+          } else {
+            if (!isAdMode) {
+              window.dispatchEvent(new Event("trigger-ad"));
+            } else {
+              usePlayerStore.getState().setIsPlayingAd(false);
+              usePlayerStore.getState().playNext();
+            }
+          }
+        }
+      },
     },
     playerVars: {
       autoplay: 0,
@@ -140,11 +131,14 @@ export const PlaybackControls = () => {
     },
   });
 
+  // ✅ cleanup YT player
+  return () => {
+    player?.destroy?.();
+    ytPlayerRef.current = null;
+    setYtPlayer(null);
+  };
+}, [currentSong]);
 
-    return () => {
-      player?.destroy?.();
-    };
-  }, [currentSong]);
 
   useEffect(() => {
   setShowYoutube(false);
@@ -428,23 +422,28 @@ useEffect(() => {
             <Mic2 className="h-4 w-4" />
           </Button>
 
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              if (currentSong?.youtubeUrl) {
-                setShowYoutube(true);
-                setYoutubeExpanded(false); // mặc định hiển thị nhỏ
-                audioRef.current?.pause();
-                ytPlayer?.pauseVideo?.(); 
-
-              } else {
-                alert("Không có MV YouTube cho bài hát này.");
-              }
-            }}
-          >
-            <PlaySquare className="h-4 w-4" />
-          </Button>
+          {(!currentSong?.isPremium || usePremiumStore.getState().isPremium) && (
+  <Button
+    size="icon"
+    variant="ghost"
+    onClick={() => {
+      if (currentSong?.youtubeUrl) {
+        setShowYoutube(true);
+        setYoutubeExpanded(false); // mặc định hiển thị nhỏ
+        audioRef.current?.pause();
+        ytPlayer?.pauseVideo?.(); 
+      } else {
+        alert("Không có MV YouTube cho bài hát này.");
+      }
+    }}
+    className={clsx(
+      "cursor-pointer transition-colors",
+      showYoutube ? "text-emerald-400" : "text-zinc-400 hover:text-white"
+    )}
+  >
+    <PlaySquare className="h-4 w-4" />
+  </Button>
+)}
 
 
           {/* <Button size="icon" variant="ghost" className="hover:text-white cursor-pointer text-zinc-400">

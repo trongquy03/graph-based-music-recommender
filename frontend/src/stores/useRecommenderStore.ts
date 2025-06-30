@@ -3,6 +3,7 @@ import { axiosInstance } from "@/lib/axios";
 import { Artist, Song } from "@/types";
 
 interface RecommendedArtist extends Artist {
+  _id: string;
   similarity: number | null;
   score: number | null;
 }
@@ -35,7 +36,13 @@ export const useUserRecommenderStore = create<UserRecommenderStore>((set) => ({
     try {
       const res = await axiosInstance.get("/artist/recommendations");
       const sorted = [...res.data.data].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
-      set({ recommendedArtists: sorted });
+      set({
+          recommendedArtists: sorted.map((a) => ({
+            ...a,
+            _id: a.id, 
+          })),
+        });
+
     } catch (err: any) {
       set({ error: err.message });
     } finally {
@@ -43,14 +50,18 @@ export const useUserRecommenderStore = create<UserRecommenderStore>((set) => ({
     }
   },
 
-  fetchSimilarArtists: async (artistId) => {
-    try {
-      const res = await axiosInstance.get(`/artist/${artistId}/similar`);
-      return [...res.data.data].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
-    } catch (err: any) {
-      return [];
-    }
-  },
+ fetchSimilarArtists: async (artistId) => {
+  try {
+    const res = await axiosInstance.get(`/artist/${artistId}/similar`);
+    const sorted = [...res.data.data]
+      .map((a) => ({ ...a, _id: a.id }))
+      .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
+
+    return sorted;
+  } catch (err: any) {
+    return [];
+  }
+},
 
   //  Gợi ý cá nhân hóa (PageRank)
 fetchRecommendedSongs: async () => {

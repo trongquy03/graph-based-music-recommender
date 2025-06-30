@@ -165,7 +165,7 @@ const PlaylistDetailPage = () => {
                   )}
                 </div>
                 <span className="text-sm text-white/60">
-                  {currentPlaylist?.createdBy?.fullName || "Ẩn danh"} • {currentPlaylist?.songs.length || 0} bài hát
+                  {currentPlaylist?.createdBy?.fullName || ""} • {currentPlaylist?.songs.length || 0} bài hát
                 </span>
               </div>
             </div>

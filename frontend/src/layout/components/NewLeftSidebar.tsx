@@ -70,10 +70,10 @@ return (
             <HomeIcon className="size-5" />
             <span className="truncate">Trang chủ</span>
           </Link>
-          <Link to="/zing-chart" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-[#2a2a2a]">
+          {/* <Link to="/zing-chart" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-[#2a2a2a]">
             <Tag className="size-5 text-purple-500" />
             <span className="truncate">Tag</span>
-          </Link>
+          </Link> */}
           <Link to="/recently-played" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-[#2a2a2a]">
             <Clock className="size-5 text-purple-400" />
             <span className="truncate">Nghe gần đây</span>

@@ -3,13 +3,17 @@ import { usePlayerStore } from "@/stores/usePlayerStore";
 import { usePremiumStore } from "@/stores/usePremiumStore";
 import { axiosInstance } from "@/lib/axios";
 import { ytPlayerRef } from "@/lib/youtubePlayer";
+import { useAuth } from "@clerk/clerk-react";
+import { useAudioRef } from "./AudioContext";
 
 const AudioPlayer = () => {
-  const audioRef = useRef<HTMLAudioElement>(null);
+  // const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useAudioRef();
   const prevSongRef = useRef<string | null>(null);
   const [isAdMode, setIsAdMode] = useState(false);
   const [remaining, setRemaining] = useState(10);
   const [skipEnabled, setSkipEnabled] = useState(false);
+  const { isSignedIn } = useAuth();
 
   const {
     currentSong,
@@ -117,7 +121,7 @@ const AudioPlayer = () => {
     }
   }, [currentSong?.audioUrl, isAdMode]);
 
-  // 👉 BẮT SỰ KIỆN KẾT THÚC VIDEO YOUTUBE
+  // BẮT SỰ KIỆN KẾT THÚC VIDEO YOUTUBE
   useEffect(() => {
     const yt = ytPlayerRef.current;
     if (!yt || isPremium || isAdMode || !currentSong?.youtubeUrl) return;
@@ -134,7 +138,7 @@ const AudioPlayer = () => {
     };
   }, [currentSong?.youtubeUrl, isPremium, isAdMode]);
 
-  // 👉 NGĂN CHƠI QUÁ 30 GIÂY VỚI BÀI PREMIUM
+  // NGĂN CHƠI QUÁ 30 GIÂY VỚI BÀI PREMIUM
   useEffect(() => {
     if (!currentSong || isPremium || !currentSong.isPremium) return;
     const interval = setInterval(() => {
@@ -173,7 +177,7 @@ const AudioPlayer = () => {
 
 useEffect(() => {
   const handleTriggerAd = () => {
-    triggerAd(); // gọi local
+    triggerAd(); 
   };
 
   window.addEventListener("trigger-ad", handleTriggerAd);
@@ -191,12 +195,20 @@ useEffect(() => {
           <div className="relative bg-white rounded-lg overflow-hidden w-[90%] max-w-4xl">
             <img src="/bannerAds.png" alt="Ad Banner" className="w-full h-auto" />
             <div className="absolute bottom-5 left-0 right-0 px-6 flex justify-between items-center">
-              <button
+              {/* <button
+                onClick={() => window.open("/premium", "_blank")}
+                className="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700"
+              >
+                NÂNG CẤP NGAY
+              </button> */}
+               {isSignedIn && (
+        <button
                 onClick={() => window.open("/premium", "_blank")}
                 className="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700"
               >
                 NÂNG CẤP NGAY
               </button>
+      )}
               <button
                 onClick={skipAd}
                 disabled={!skipEnabled}

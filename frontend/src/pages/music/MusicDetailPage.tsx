@@ -8,8 +8,11 @@ import { useAuth } from "@clerk/clerk-react";
 import PlayButton from "../home/components/PlayButton";
 import LikeButton from "../home/components/LikeButton";
 import MusicRecommendSection from "./components/MusicRecommend";
+import CommentPanelV2 from "../comment/CommentForMusicDetail";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Song } from "@/types";
-import { useUserRecommenderStore } from "@/stores/useRecommenderStore"; // ✅ thêm dòng này
+import { useUserRecommenderStore } from "@/stores/useRecommenderStore";
+import { usePremiumStore } from "@/stores/usePremiumStore"; // ✅ Thêm dòng này
 
 const MusicDetailPage = () => {
   const { songId } = useParams();
@@ -30,8 +33,8 @@ const MusicDetailPage = () => {
     fetchAverageRating,
   } = useRatingStore();
 
-  const { fetchSimilarSongs } = useUserRecommenderStore(); // ✅ dùng recommender store
-  const [similarSongs, setSimilarSongs] = useState<Song[]>([]); // ✅ khai báo state tương tự
+  const { fetchSimilarSongs } = useUserRecommenderStore();
+  const [similarSongs, setSimilarSongs] = useState<Song[]>([]);
 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,9 +49,8 @@ const MusicDetailPage = () => {
       await fetchUserRatings(!!isSignedIn);
       fetchFeaturedSongs();
 
-      const similar = await fetchSimilarSongs(songId); // ✅ gọi hàm gợi ý bài hát tương tự
-      setSimilarSongs(similar); // ✅ lưu vào state
-
+      const similar = await fetchSimilarSongs(songId);
+      setSimilarSongs(similar);
       setLoading(false);
     };
     load();
@@ -60,10 +62,13 @@ const MusicDetailPage = () => {
 
   const avg = getAverageRatingForSong(currentSong._id);
   const userRating = getUserRatingForSong(currentSong._id);
+  const isPremiumUser = usePremiumStore.getState().isPremium;
 
   return (
+    <main className="rounded-md overflow-hidden h-full bg-gradient-to-b from-zinc-800 to-zinc-900">
+    <ScrollArea className="h-[calc(100vh-180px)]">
+      <div className="p-4 space-y-6">
     <div className="p-4 space-y-6">
-
       {/* Top section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 bg-zinc-900 p-4 rounded-lg shadow-md">
@@ -146,7 +151,7 @@ const MusicDetailPage = () => {
         </div>
 
         {/* Right: Video */}
-        {currentSong.youtubeUrl ? (
+        {currentSong.youtubeUrl && (!currentSong.isPremium || isPremiumUser) ? (
           <div className="w-full aspect-video rounded-lg overflow-hidden bg-black shadow-lg">
             <iframe
               width="100%"
@@ -159,7 +164,7 @@ const MusicDetailPage = () => {
           </div>
         ) : (
           <div className="w-full h-full text-center text-zinc-500 flex justify-center items-center bg-zinc-800 rounded-lg">
-            Không có video
+            {currentSong.youtubeUrl ? "Chỉ dành cho tài khoản Premium" : "Không có video"}
           </div>
         )}
       </div>
@@ -167,9 +172,19 @@ const MusicDetailPage = () => {
       {/* Gợi ý */}
       <div>
         <h3 className="text-xl font-semibold text-white mb-2">Có thể bạn sẽ thích</h3>
-        <MusicRecommendSection songs={similarSongs} /> {/* ✅ Truyền biến đã fetch */}
+        <MusicRecommendSection songs={similarSongs} />
       </div>
+
+      {/* Bình luận */}
+<div>
+  {/* <h3 className="text-xl font-semibold text-white mb-2">Bình luận</h3> */}
+  <CommentPanelV2 songId={currentSong._id} />
+</div>
+
     </div>
+    </div>
+    </ScrollArea>
+  </main>
   );
 };
 

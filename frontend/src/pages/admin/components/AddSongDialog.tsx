@@ -28,6 +28,8 @@ interface NewSong {
   duration: string;
   genre: GenreEnum;
   mood: MoodEnum;
+  youtubeUrl?: string;
+  isPremium?: boolean;
 }
 
 const AddSongDialog = () => {
@@ -45,6 +47,8 @@ const AddSongDialog = () => {
     duration: "0",
     genre: GenreEnum.None,
     mood: MoodEnum.None,
+    youtubeUrl: "",
+    isPremium: false,
   });
 
   const [files, setFiles] = useState<{ audio: File | null; image: File | null }>({
@@ -57,10 +61,10 @@ const AddSongDialog = () => {
   useEffect(() => {
     fetchArtists(1, 50, "", isSignedIn ?? false);
   }, [fetchArtists]);
-  useEffect(() => {
-  fetchAlbums();
-}, []);
 
+  useEffect(() => {
+    fetchAlbums();
+  }, []);
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -70,26 +74,27 @@ const AddSongDialog = () => {
         toast.error("Please upload both audio and image files");
         return;
       }
+
       if (newSong.genre === GenreEnum.None) {
         toast.error("Please select a genre for the song");
         return;
       }
 
-
       const audioUrl = await uploadToCloudinarySigned(files.audio, "video");
       const imageUrl = await uploadToCloudinarySigned(files.image, "image");
 
       await axiosInstance.post("/admin/songs", {
-          title: newSong.title,
-          artistId: newSong.artist,
-          albumId: newSong.album === "none" ? null : newSong.album,
-          duration: newSong.duration,
-          audioUrl,
-          imageUrl,
-          genre: newSong.genre, 
-          mood: newSong.mood === MoodEnum.None ? undefined : newSong.mood,
-        });
-
+        title: newSong.title,
+        artistId: newSong.artist,
+        albumId: newSong.album === "none" ? null : newSong.album,
+        duration: newSong.duration,
+        audioUrl,
+        imageUrl,
+        genre: newSong.genre,
+        mood: newSong.mood === MoodEnum.None ? undefined : newSong.mood,
+        youtubeUrl: newSong.youtubeUrl?.trim() || "",
+        isPremium: newSong.isPremium ?? false,
+      });
 
       toast.success("Song added successfully");
       setNewSong({
@@ -99,6 +104,8 @@ const AddSongDialog = () => {
         duration: "0",
         genre: GenreEnum.Pop,
         mood: MoodEnum.Chill,
+        youtubeUrl: "",
+        isPremium: false,
       });
       setFiles({ audio: null, image: null });
       setSongDialogOpen(false);
@@ -130,7 +137,9 @@ const AddSongDialog = () => {
             ref={imageInputRef}
             className="hidden"
             accept="image/*"
-            onChange={(e) => setFiles((prev) => ({ ...prev, image: e.target.files?.[0] || null }))}
+            onChange={(e) =>
+              setFiles((prev) => ({ ...prev, image: e.target.files?.[0] || null }))
+            }
           />
 
           <div
@@ -213,21 +222,21 @@ const AddSongDialog = () => {
           <div className="space-y-2">
             <label className="text-sm font-medium">Mood</label>
             <select
-          value={newSong.mood}
-          onChange={(e) =>
-            setNewSong((prev) => ({ ...prev, mood: e.target.value as MoodEnum }))
-          }
-          className="bg-zinc-800 border-zinc-700 rounded-md px-3 py-2 text-sm w-full"
-        >
-          <option value="none">No mood</option>
-          {Object.values(MoodEnum)
-            .filter((m) => m !== MoodEnum.None)
-            .map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-        </select>
+              value={newSong.mood}
+              onChange={(e) =>
+                setNewSong((prev) => ({ ...prev, mood: e.target.value as MoodEnum }))
+              }
+              className="bg-zinc-800 border-zinc-700 rounded-md px-3 py-2 text-sm w-full"
+            >
+              <option value="none">No mood</option>
+              {Object.values(MoodEnum)
+                .filter((m) => m !== MoodEnum.None)
+                .map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+            </select>
           </div>
 
           <div className="space-y-2">
@@ -240,6 +249,31 @@ const AddSongDialog = () => {
               className="bg-zinc-800 border-zinc-700"
               placeholder="Auto-detected"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">YouTube URL (Optional)</label>
+            <Input
+              value={newSong.youtubeUrl}
+              onChange={(e) =>
+                setNewSong((prev) => ({ ...prev, youtubeUrl: e.target.value }))
+              }
+              className="bg-zinc-800 border-zinc-700"
+              placeholder="https://youtube.com/..."
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isPremium"
+              checked={newSong.isPremium}
+              onChange={(e) => setNewSong((prev) => ({ ...prev, isPremium: e.target.checked }))}
+              className="accent-emerald-500"
+            />
+            <label htmlFor="isPremium" className="text-sm">
+              Premium song?
+            </label>
           </div>
 
           <div className="space-y-2">

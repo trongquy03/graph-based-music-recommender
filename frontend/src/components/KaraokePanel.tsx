@@ -98,20 +98,27 @@ const KaraokePanel = ({ audioRef, lyricsUrl, currentSong }: Props) => {
     };
   }, [audioRef]);
 
-  useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      if (!audioRef.current || lyrics.length === 0) return;
-      const currentTime = audioRef.current.currentTime;
-      const index = lyrics.findIndex(
-        (line) => currentTime >= line.start && currentTime < line.end
-      );
-      if (index !== -1 && index !== currentIndex) {
-        setCurrentIndex(index);
-      }
-    }, 100);
-    return () => clearInterval(interval);
-  }, [isPlaying, audioRef, lyrics, currentIndex]);
+useEffect(() => {
+  if (!audioRef.current) return;
+
+  const checkPlay = () => !audioRef.current?.paused;
+
+  const interval = setInterval(() => {
+    if (!checkPlay()) return;
+
+    const currentTime = audioRef.current!.currentTime;
+    const index = lyrics.findIndex(
+      (line) => currentTime >= line.start && currentTime < line.end
+    );
+
+    if (index !== -1 && index !== currentIndex) {
+      setCurrentIndex(index);
+    }
+  }, 100);
+
+  return () => clearInterval(interval);
+}, [audioRef, lyrics, currentIndex]);
+
 
   useEffect(() => {
     if (containerRef.current) {
@@ -125,12 +132,12 @@ const KaraokePanel = ({ audioRef, lyricsUrl, currentSong }: Props) => {
   return (
     <div className="w-full h-full flex flex-col">
       <div className="flex justify-center space-x-4 mt-2 text-sm md:text-base">
-        <button
+        {/* <button
           className={`px-4 py-1 rounded-full ${activeTab === "playlist" ? "bg-white text-black" : "text-white/60"}`}
           onClick={() => setActiveTab("playlist")}
         >
           Danh sách phát
-        </button>
+        </button> */}
         <button
           disabled={isLoadingKaraoke}
           className={`px-4 py-1 rounded-full transition-opacity duration-200 ${
