@@ -2,31 +2,52 @@ import pandas as pd
 from neo4j import GraphDatabase
 from tqdm import tqdm
 
+# === Thay thông tin này bằng từ Neo4j Aura Console ===
+NEO4J_URI = ""
+NEO4J_USER = ""
+NEO4J_PASSWORD = ""
 
-df = pd.read_csv("Lastfm_data.csv")  
+# Kết nối Neo4j
+driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
-df = df.dropna(subset=["Username", "Artist", "Track"])
-df["Username"] = df["Username"].str.strip().str.lower()
-df["Artist"] = df["Artist"].str.strip().str.lower()
-df["Track"] = df["Track"].str.strip().str.lower()
+# Đọc dữ liệu CSV
+df = pd.read_csv("entity_has_tag_combined.csv")
+df['tag'] = df['tag'].str.strip().str.lower()
+df['name'] = df['name'].str.strip()
 
-# === Kết nối Neo4j local ===
-driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "123456789"))  
-def insert_to_neo4j(tx, username, artist, track):
-    tx.run("""
-        MERGE (u:User {id: $user})
-        MERGE (a:Artist {name: $artist})
-        MERGE (s:Song {title: $track})
-        MERGE (s)-[:BY]->(a)
-        MERGE (u)-[:LISTENED]->(s)
-    """, user=username, artist=artist, track=track)
+def import_tag(tx, entity_type, name, tag, weight):
+    if entity_type == "Song":
+        match_clause = """
+            WITH t
+            MATCH (e:Song {title: $name})
+        """
+    elif entity_type == "Artist":
+        match_clause = """
+            WITH t
+            MATCH (e:Artist {name: $name})
+        """
+    else:
+        raise ValueError(f"Unknown entity_type: {entity_type}")
+    
+    query = f"""
+        MERGE (t:Tag {{name: $tag}})
+        {match_clause}
+        MERGE (e)-[:HAS_TAG {{weight: $weight}}]->(t)
+    """
+    tx.run(query, tag=tag, name=name, weight=weight)
 
-# === import dữ liệu ===
 with driver.session() as session:
-    for row in tqdm(df.itertuples(), total=len(df)):
+    for idx, row in tqdm(df.iterrows(), total=len(df)):
         try:
-            session.execute_write(insert_to_neo4j, row.Username, row.Artist, row.Track)
+            session.execute_write(
+                import_tag,
+                row['entity_type'],
+                row['name'],
+                row['tag'],
+                row['weight']
+            )
         except Exception as e:
-            print("Lỗi:", e)
+            print(f"Lỗi tại dòng {idx}: {e}")
 
 driver.close()
+print(" Import tag vào Neo4j hoàn tất.")
